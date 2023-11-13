@@ -1,7 +1,15 @@
-# configfile: "config.yaml"
+configfile: "config.yaml"
 
 rule all:
+    input: "data/processed/snvs/drivers/PPGL.somatic.data.combined.filtered.txt"
+
+rule filter_by_allele_depth:
     input: "data/processed/snvs/drivers/PPGL.somatic.data.combined.txt"
+    output: "data/processed/snvs/drivers/PPGL.somatic.data.combined.filtered.txt"
+    params:
+        read_depth = lambda wildcards: config["read_depth"]
+    shell: "python src/somatic_variant_analysis/filter_variants_by_allele_depth.py -i={input} -o={output} "
+        "-rd={params.read_depth}"
 
 rule combine_somatic_variants:
     input: "data/raw/snvs"
