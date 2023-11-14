@@ -19,7 +19,7 @@ parser.add_argument(
 args = parser.parse_args()
 
 filenames = os.listdir(args.input)
-combined_tsv = pd.concat(
+combined = pd.concat(
     [
         pd.read_csv(
             "{0}/{1}".format(args.input, f),
@@ -28,7 +28,9 @@ combined_tsv = pd.concat(
             low_memory=False,
         )
         for f in filenames
-    ]
+    ],
+    ignore_index=True,
 )
 
-combined_tsv.to_csv(args.output, index=False, sep="\t")
+combined.drop(combined.filter(regex="Unname"), axis=1, inplace=True)
+combined.to_csv(args.output, index=False, sep="\t")
