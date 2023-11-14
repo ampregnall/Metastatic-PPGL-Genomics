@@ -1,7 +1,19 @@
 configfile: "config.yaml"
 
 rule all:
+    input: 
+        lof = "data/processed/snvs/drivers/PPGL.somatic.data.combined.filtered.LOF.txt",
+        gof = "data/processed/snvs/drivers/PPGL.somatic.data.combined.filtered.GOF.txt"
+
+rule filter_by_mutation_consequence:
     input: "data/processed/snvs/drivers/PPGL.somatic.data.combined.filtered.txt"
+    output:
+        lof = "data/processed/snvs/drivers/PPGL.somatic.data.combined.filtered.LOF.txt",
+        gof = "data/processed/snvs/drivers/PPGL.somatic.data.combined.filtered.GOF.txt"
+    params:
+        allele_freq = lambda wildcards: config["allele_freq"]
+    shell: "python src/somatic_variant_analysis/filter_variants_by_mutation_consequence.py -i={input} "
+        "-af={params.allele_freq} -lof={output.lof} -gof={output.gof}"
 
 rule filter_by_allele_depth:
     input: "data/processed/snvs/drivers/PPGL.somatic.data.combined.txt"
