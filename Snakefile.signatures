@@ -2,7 +2,16 @@ configfile: "config.yaml"
 
 rule all:    
     input:
-        FFPE = expand("data/processed/snvs/mutational_signatures/FFPESig/{sample}_corrected_profile.csv", sample=config["samples"])
+        FFPE = "data/processed/snvs/mutational_signatures/MetastaticPPGL.SBS96.FFPESigCorrected.csv"
+
+rule combine_FFPESig_output:
+    input:
+        flag=expand("data/processed/snvs/mutational_signatures/FFPESig/{sample}_corrected_profile.csv", sample=config["samples"]),
+        folder="data/processed/snvs/mutational_signatures/FFPESig",
+        rownames="metadata/SBS96-Channels.csv"  
+    output:
+        "data/processed/snvs/mutational_signatures/MetastaticPPGL.SBS96.FFPESigCorrected.csv"
+    shell: "python src/somatic_variant_analysis/combine_FFPEsig_output.py {input.folder} {input.rownames} {output}"
 
 rule run_FFPESig:
     input: "data/processed/snvs/mutational_signatures/MetastaticPPGL.SBS96.csv"
