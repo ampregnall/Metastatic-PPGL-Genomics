@@ -1,8 +1,16 @@
 configfile: "config.yaml"
 
 rule all:    
-    input:
-        FFPE = "data/processed/snvs/mutational_signatures/MetastaticPPGL.SBS96.FFPESigCorrected.csv"
+    input: "results/mutational_signatures/SigProfilerExtractor/SBS96_selection_plot.pdf"
+
+rule mutational_signature_extraction:
+    input: "data/processed/snvs/mutational_signatures/MetastaticPPGL.SBS96.FFPESigCorrected.csv",
+    params:
+        direct="results/mutational_signatures/SigProfilerExtractor"
+    output: "results/mutational_signatures/SigProfilerExtractor/SBS96_selection_plot.pdf"
+    threads: 8
+    shell: "python src/somatic_variant_analysis/mutational_signature_extraction.py -i={input} "
+        "-o={params.direct} -g=GrCh38 -t={threads}"
 
 rule combine_FFPESig_output:
     input:
