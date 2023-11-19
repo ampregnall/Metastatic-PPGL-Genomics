@@ -5,3 +5,4 @@
 .snakemake/
 *.docx
 *.pdf
+.Rhistory
