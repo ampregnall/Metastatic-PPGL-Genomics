@@ -14,6 +14,11 @@ option_list <- list(
               type = "character",
               help = "output file name [default = %default]",
               metavar = "character"
+  ),
+  make_option(c("-r", "--rownames"),
+              type = "character",
+              help = "output file name [default = %default]",
+              metavar = "character"
   )
 )
 
@@ -21,6 +26,7 @@ opt_parser <- OptionParser(option_list = option_list)
 opt <- parse_args(opt_parser)
 
 df <- readr::read_delim(opt$input, delim = "\t")
+meta <- readr::read_delim(opt$rownames, delim=',')
 
 df_snv <- df %>% dplyr::filter(Variant.Class == "SNV") %>%
   dplyr::select(Tumor.ID, Chr, Start, REF, ALT) %>%
@@ -31,7 +37,9 @@ df_snv_split <- df_snv %>% base::split(f = as.factor(.$Tumor.ID))
 df_snv_split <- lapply(df_snv_split, signature.tools.lib::tabToSNVcatalogue, genome.v = "hg38")
 
 df_snv_catalogs <- purrr::map(df_snv_split, 2) %>%
-  purrr::map(1) %>% as_tibble()
+  purrr::map(1) %>% as_tibble() %>%
+  tibble::add_column(meta, .after = 0)
+
 
 # SAVE RESULTS
 readr::write_delim(df_snv_catalogs, opt$output, delim = ",")

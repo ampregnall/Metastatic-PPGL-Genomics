@@ -1,13 +1,24 @@
 configfile: "config.yaml"
 
 rule all:    
-    input: "results/mutational_signatures/SigProfilerExtractor/SBS96_selection_plot.pdf"
+    input: 
+        FFPESigCorrected = "results/mutational_signatures/SigProfilerExtractor_FFPESigCorrected/SBS96/SBS96_selection_plot.pdf",
+        FFPESigUncorrected = "results/mutational_signatures/SigProfilerExtractor/SBS96/SBS96_selection_plot.pdf",
 
-rule mutational_signature_extraction:
+rule FFPESig_mutational_signature_extraction:
     input: "data/processed/snvs/mutational_signatures/MetastaticPPGL.SBS96.FFPESigCorrected.csv",
     params:
+        direct="results/mutational_signatures/SigProfilerExtractor_FFPESigCorrected"
+    output: "results/mutational_signatures/SigProfilerExtractor_FFPESigCorrected/SBS96/SBS96_selection_plot.pdf"
+    threads: 8
+    shell: "python src/somatic_variant_analysis/mutational_signature_extraction.py -i={input} "
+        "-o={params.direct} -g=GrCh38 -t={threads}"
+
+rule mutational_signature_extraction:
+    input: "data/processed/snvs/mutational_signatures/MetastaticPPGL.SBS96.csv",
+    params:
         direct="results/mutational_signatures/SigProfilerExtractor"
-    output: "results/mutational_signatures/SigProfilerExtractor/SBS96_selection_plot.pdf"
+    output: "results/mutational_signatures/SigProfilerExtractor/SBS96/SBS96_selection_plot.pdf"
     threads: 8
     shell: "python src/somatic_variant_analysis/mutational_signature_extraction.py -i={input} "
         "-o={params.direct} -g=GrCh38 -t={threads}"
@@ -33,6 +44,8 @@ rule run_FFPESig:
             shell("python src/somatic_variant_analysis/FFPESig.py --input={input} --sample={wildcards.sample} --label=Unrepaired --output={params.folder}")
 
 rule generate_SNV_catalog:
-    input: "data/processed/snvs/drivers/PPGL.somatic.data.combined.filtered.txt"
+    input: 
+        data = "data/processed/snvs/drivers/PPGL.somatic.data.combined.filtered.txt",
+        rownames = "metadata/SBS96-Channels.csv"
     output: "data/processed/snvs/mutational_signatures/MetastaticPPGL.SBS96.csv"
-    shell: "Rscript src/somatic_variant_analysis/generate_SBS96_catalog.R --input={input} --output={output}"
+    shell: "Rscript src/somatic_variant_analysis/generate_SBS96_catalog.R --input={input.data} --output={output} --rownames={input.rownames}"
