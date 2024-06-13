@@ -25,6 +25,12 @@ cnv_per_mutation <- cnv_per_mutation %>% dplyr::rowwise() %>%
   dplyr::mutate(Tumor.AltFrac.95 = prop.test(Tumor.AltDepth, Tumor.Depth)$conf[2]) %>%
   dplyr::mutate(Tumor.AltFrac.05 = prop.test(Tumor.AltDepth, Tumor.Depth)$conf[1])
 
+### Estimate mutation multiplicity in samples
+cnv_per_mutation <- cnv_per_mutation %>% dplyr::rowwise() %>%
+  dplyr::mutate(Mutation.Multiplicity = (Tumor.AltFrac / purity) * ((purity * CNt)+ 2 * (1 - purity))) %>%
+  dplyr::mutate(Mutation.Multiplicity.95 = (Tumor.AltFrac.95 / purity) * ((purity * CNt)+ 2 * (1 - purity))) %>%
+  dplyr::mutate(Mutation.Multiplicity.05 = (Tumor.AltFrac.05 / purity) * ((purity * CNt) + 2 * (1 - purity)))
+
 ### Get maximum copy number from sample
 max_cn <- max(cnv_per_mutation$CNt)
 
