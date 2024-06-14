@@ -34,6 +34,45 @@ cnv_per_mutation <- cnv_per_mutation %>% dplyr::rowwise() %>%
 ### Get maximum copy number from sample
 max_cn <- max(cnv_per_mutation$CNt)
 
+estimate_cancer_cell_fraction <- function(n_tumor_alt, n_tumor, CNt) {
+  
+  # Calculate distribution of VAFs assuming CCF of x: (x*purity) / (2*(1-purity)+purity*CNt
+  # Calculate probability of each CCF given tumor/total reads using binomial probability distribution
+  x <- dbinom(n_tumor_alt, n_tumor, prob = sapply(seq(0.01, 1, 0.01), function(x) (x*purity) / (2*(1-purity)+purity*CNt)))
+  
+  if(min(x) == 0) {
+    x[length(x)] <- 1}
+  names(x) <- seq(0.01, 1, 0.01)
+  
+  # Normalize probability distribution
+  x_norm <- x / sum(x) 
+  
+  
+  x_sort <- sort(x_norm, decreasing = TRUE)
+  x_cumalative_likelihood <- cumsum(x_sort)
+  
+  n = sum(x_cumalative_likelihood < 0.95) + 1
+  threshold <- x_sort[n]
+  conf_int <- x[x_norm >= threshold]
+  cancer_cell_fractions <- as.numeric(names(conf_int))
+  ccf <- cancer_cell_fractions[which.max(conf_int)]
+  ccf.05 <- cancer_cell_fractions[1]
+  ccf.95 <- cancer_cell_fractions[length(cancer_cell_fractions)]
+  prob_subclonal <- sum(x_norm[1:90])
+  prob_clonal <- sum(x_norm[91:100])
+  results <- list(ccf, ccf.05, ccf.95, prob_clonal, prob_subclonal)
+  names(results) <- c("CCF", "CCF.05", "CCF.95", "Prob.Clonal", "Prob.Subclonal")
+  results
+}
+
+### Calculate CCF for the sample
+cnv_per_mutation <- cnv_per_mutation %>% dplyr::rowwise() %>%
+  dplyr::mutate(results = list(estimate_cancer_cell_fraction(Tumor.AltDepth, Tumor.Depth, CNt))) %>%
+  tidyr::unnest_wider(results) %>%
+  dplyr::ungroup()
+
+# SANDBOX -----------------------------------------------------------------
+
 ### Define function to create combinations of A/B alleles; borrowed from Sequenza 3.0
 mufreq.types.matrix <- function(CNt.min, CNt.max, CNn = 2) {
   cn_ratio_vect <- seq(from = CNt.min / CNn, to = CNt.max / CNn, by = 1 / CNn)
