@@ -7,3 +7,6 @@
 *.pdf
 .Rhistory
 .Rproj.user
+*.pptx
+.RData
+.Rproj
