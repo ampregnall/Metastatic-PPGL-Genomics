@@ -3,6 +3,14 @@ configfile: "config.yaml"
 rule all:    
     input: 
         ccf = expand("data/processed/mutation_timing/ccf_estimates/{sample}_ccf_estimates.txt", sample=config["samples"]),
+        ccf_combined = "data/processed/mutation_timing/ccf_estimates/mPPGL_cancer_cell_fractions.txt"
+
+rule combine_ccf_output:
+    input:
+        flag = expand("data/processed/mutation_timing/ccf_estimates/{sample}_ccf_estimates.txt", sample=config["samples"]),
+        folder="data/processed/mutation_timing/ccf_estimates"
+    output: "data/processed/mutation_timing/ccf_estimates/mPPGL_cancer_cell_fractions.txt"
+    shell: "python src/utilities/combine_txt.py -i={input.folder} -o={output}"
 
 rule estimate_cancer_cell_fraction:
     input: 
