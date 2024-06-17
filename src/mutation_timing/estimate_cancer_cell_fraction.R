@@ -36,7 +36,7 @@ purity <- estimates[estimates$sample == opt$sample,]$cellularity
 
 ### Create unique mutation ID and select distinct mutations
 mutations <- somatic_vars %>% dplyr::mutate(MutID = stringr::str_c(Chr, Start, Gene, REF, ALT, sep = "-")) %>%
-  dplyr::select(Chr, Start, Gene, REF, ALT, MutID, Tumor.Depth, Tumor.AltDepth, Tumor.AltFrac, Gene.Accession) %>%
+  dplyr::select(Tumor.ID, Chr, Start, Gene, REF, ALT, MutID, Tumor.Depth, Tumor.AltDepth, Tumor.AltFrac, Gene.Accession) %>%
   dplyr::distinct(MutID, .keep_all = TRUE) %>%
   dplyr::mutate(Chr = as.character(Chr))
 
