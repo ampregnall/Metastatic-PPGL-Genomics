@@ -8,11 +8,12 @@ df <- readr::read_delim("data/processed/mutation_timing/ccf_estimates/mPPGL_canc
 group1 <- sort(unique(df$Tumor.ID))[1:12]
 group2 <- sort(unique(df$Tumor.ID))[13:24]
 group3 <- sort(unique(df$Tumor.ID))[25:36]
-group4 <- sort(unique(df$Tumor.ID))[37:43]
+group4 <- sort(unique(df$Tumor.ID))[37:48]
 
 ### Plot distribution of CCF estimates in overall cohort
 plot <- ggplot(df, aes(x=CCF)) + geom_density(fill="lightblue") +
   xlab("Cancer Cell Fraction") + ylab("Density") + labs(title="Distribution of CCF Estimates in mPPGL Cohort") +
+  geom_vline(xintercept = 0.9, linetype = "dashed", color = "#D36492") +
   theme_minimal() + theme(legend.position = "none", 
        plot.title = element_text(size = 16, hjust=0.5),
        axis.text.x = element_text(size = 16),
@@ -37,6 +38,7 @@ df4 <- df %>% dplyr::filter(Tumor.ID %in% group4)
 ### Create plot for first page
 plot1 <- ggplot(df1, aes(x=CCF)) + geom_density(fill="lightblue") +
   xlab("Cancer Cell Fraction") + ylab("Density") + facet_wrap(~Tumor.ID) +
+  geom_vline(xintercept = 0.9, linetype = "dashed", color = "#D36492") +
   theme_minimal() + theme(legend.position = "none", 
                           plot.title = element_text(size = 16, hjust=0.5),
                           axis.text.x = element_text(size = 12),
@@ -48,6 +50,7 @@ plot1 <- ggplot(df1, aes(x=CCF)) + geom_density(fill="lightblue") +
 ### Create plot for second page
 plot2 <- ggplot(df2, aes(x=CCF)) + geom_density(fill="lightblue") +
   xlab("Cancer Cell Fraction") + ylab("Density") + facet_wrap(~Tumor.ID) +
+  geom_vline(xintercept = 0.9, linetype = "dashed", color = "#D36492") +
   theme_minimal() + theme(legend.position = "none", 
                           plot.title = element_text(size = 16, hjust=0.5),
                           axis.text.x = element_text(size = 12),
@@ -59,6 +62,7 @@ plot2 <- ggplot(df2, aes(x=CCF)) + geom_density(fill="lightblue") +
 ### Create plot for third page
 plot3 <- ggplot(df3, aes(x=CCF)) + geom_density(fill="lightblue") +
   xlab("Cancer Cell Fraction") + ylab("Density") + facet_wrap(~Tumor.ID) +
+  geom_vline(xintercept = 0.9, linetype = "dashed", color = "#D36492") +
   theme_minimal() + theme(legend.position = "none", 
                           plot.title = element_text(size = 16, hjust=0.5),
                           axis.text.x = element_text(size = 12),
@@ -70,6 +74,7 @@ plot3 <- ggplot(df3, aes(x=CCF)) + geom_density(fill="lightblue") +
 ### Create plot for fourth page
 plot4 <- ggplot(df4, aes(x=CCF)) + geom_density(fill="lightblue") +
   xlab("Cancer Cell Fraction") + ylab("Density") + facet_wrap(~Tumor.ID) +
+  geom_vline(xintercept = 0.9, linetype = "dashed", color = "#D36492") +
   theme_minimal() + theme(legend.position = "none", 
                           plot.title = element_text(size = 16, hjust=0.5),
                           axis.text.x = element_text(size = 12),
@@ -131,8 +136,8 @@ dev.off()
 # Relationship Between Tumor.AltDepth and CCF -----------------------------
 
 ### Create categorical encoding of tumor copy number
-df <- df %>% dplyr::mutate(CNt_cat = case_when(CNt == 0 ~ "0", CNt == 1 ~ "1", CNt == 2 ~"2", 
-                                               CNt == 3 ~ "3", CNt == 4 ~ "4", TRUE ~ "5+"))
+df <- df %>% dplyr::mutate(CNt_cat = case_when(Segment.CN == 0 ~ "0", Segment.CN == 1 ~ "1", Segment.CN == 2 ~"2", 
+                                               Segment.CN == 3 ~ "3", Segment.CN == 4 ~ "4", TRUE ~ "5+"))
 
 ### Plot relationship between CCF and alternative allele fraction, color coded by tumor copy number 
 plot <- ggplot(df, aes(x=Tumor.AltFrac, y=CCF, color=CNt_cat)) + geom_point() + theme_minimal() +
