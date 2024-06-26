@@ -27,7 +27,7 @@ opt_parser <- OptionParser(option_list = option_list)
 opt <- parse_args(opt_parser)
 
 ### Load somatic and copy number variants 
-copy_number_vars <- readr::read_delim(opt$cnv, delim = "\t")
+copy_number_vars <- readr::read_csv(opt$cnv)
 somatic_vars <- readr::read_csv(opt$snv)
 
 ### Load purity and ploidy estimates for samples
@@ -41,9 +41,14 @@ mutations <- somatic_vars %>% dplyr::mutate(MutID = stringr::str_c(Chr, Start, G
   dplyr::mutate(Chr = as.character(Chr))
 
 ### Extract copy number info for each mutation; remove variants on X chromosome
+# cnv_per_mutation <- mutations %>% 
+#   dplyr::left_join(copy_number_vars, by=c("Chr"="chromosome"), relationship = "many-to-many") %>%
+#   dplyr::filter(Start >= start.pos & Start <= end.pos) %>% dplyr::filter(Chr != "X")
+
+### Extract copy number info for each mutation; remove variants on X chromosome
 cnv_per_mutation <- mutations %>% 
-  dplyr::left_join(copy_number_vars, by=c("Chr"="chromosome"), relationship = "many-to-many") %>%
-  dplyr::filter(Start >= start.pos & Start <= end.pos) %>% dplyr::filter(Chr != "X")
+  dplyr::left_join(copy_number_vars, by=c("Gene"="Gene...2", "Chr"="SV.Chrom"), relationship = "many-to-many") %>%
+  dplyr::filter(Start >= SV.Start & Start <= SV.End) %>% dplyr::filter(Chr != "X")
 
 ### Estimate 95% CI of VAF
 cnv_per_mutation <- cnv_per_mutation %>% dplyr::rowwise() %>%
@@ -52,9 +57,9 @@ cnv_per_mutation <- cnv_per_mutation %>% dplyr::rowwise() %>%
 
 ### Estimate mutation multiplicity in samples
 cnv_per_mutation <- cnv_per_mutation %>% dplyr::rowwise() %>%
-  dplyr::mutate(Mutation.Multiplicity = (Tumor.AltFrac / purity) * ((purity * CNt)+ 2 * (1 - purity))) %>%
-  dplyr::mutate(Mutation.Multiplicity.95 = (Tumor.AltFrac.95 / purity) * ((purity * CNt)+ 2 * (1 - purity))) %>%
-  dplyr::mutate(Mutation.Multiplicity.05 = (Tumor.AltFrac.05 / purity) * ((purity * CNt) + 2 * (1 - purity)))
+  dplyr::mutate(Mutation.Multiplicity = (Tumor.AltFrac / purity) * ((purity * Segment.CN)+ 2 * (1 - purity))) %>%
+  dplyr::mutate(Mutation.Multiplicity.95 = (Tumor.AltFrac.95 / purity) * ((purity * Segment.CN)+ 2 * (1 - purity))) %>%
+  dplyr::mutate(Mutation.Multiplicity.05 = (Tumor.AltFrac.05 / purity) * ((purity * Segment.CN) + 2 * (1 - purity)))
 
 estimate_cancer_cell_fraction <- function(n_tumor_alt, n_tumor, CNt) {
   # TODO: move function into own file? 
@@ -98,7 +103,7 @@ estimate_cancer_cell_fraction <- function(n_tumor_alt, n_tumor, CNt) {
 
 ### Calculate CCF for the sample
 cnv_per_mutation <- cnv_per_mutation %>% dplyr::rowwise() %>%
-  dplyr::mutate(results = list(estimate_cancer_cell_fraction(Tumor.AltDepth, Tumor.Depth, CNt))) %>%
+  dplyr::mutate(results = list(estimate_cancer_cell_fraction(Tumor.AltDepth, Tumor.Depth, Segment.CN))) %>%
   tidyr::unnest_wider(results) %>%
   dplyr::ungroup()
 
