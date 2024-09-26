@@ -1,19 +1,29 @@
+## ---------------------------
+## Script Name: identify_gof_variants.R
+## Description: Filter non-LOF variants to identify putative GOF driver mutations
+##
+## Author: Andrew M. Pregnall
+## Email: andrew.pregnall@pennmedicine.upenn.edu
+##
+## Date Created: 2024-09-26
+## ---------------------------
+
 library(tidyverse)
 library(optparse)
 
 # PARSE COMMAND LINE OPTIONS
 option_list <- list(
   make_option(c("-i", "--input"),
-              type = "character",
-              default = NULL,
-              help = "Path to data frame",
-              metavar = "character"
+    type = "character",
+    default = NULL,
+    help = "Path to data frame",
+    metavar = "character"
   ),
   make_option(c("-o", "--output"),
-              type = "character",
-              default = "out.txt",
-              help = "output file name [default = %default]",
-              metavar = "character"
+    type = "character",
+    default = "out.txt",
+    help = "output file name [default = %default]",
+    metavar = "character"
   )
 )
 
@@ -23,7 +33,7 @@ opt <- parse_args(opt_parser)
 ### Read in GOF candidate variants
 df <- readr::read_delim(opt$input)
 
-### Filter based on ClinVar or COSMIC annotation 
+### Filter based on ClinVar or COSMIC annotation
 clin_var_filter <- c("Uncertain_significance", "Likely_pathogenic", "Pathogenic", "Pathogenic/Likely_pathogenic")
 df1 <- df %>% dplyr::filter(ClinVar.SIG %in% clin_var_filter | grepl("COSV", Existing.variation))
 
