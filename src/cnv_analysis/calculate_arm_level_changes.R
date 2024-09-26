@@ -1,3 +1,14 @@
+## ---------------------------
+## Script Name: calculate_arm_level_changes.R
+## Description: Calculate the percentage of an arm affected by gain, amplification,
+## deletion, loss, or neutral copy number event
+##
+## Author: Andrew M. Pregnall
+## Email: andrew.pregnall@pennmedicine.upenn.edu
+## 
+## Date Created: 2024-09-26
+## ---------------------------
+
 library(tidyverse)
 library(optparse)
 
