@@ -2,37 +2,22 @@ configfile: "config.yaml"
 
 rule all:
     input:
-        full_arm_statistics = "data/processed/cnvs/PPGL.full_arm_level_statistics.combined.txt",
-        arm_statistics = expand("data/processed/cnvs/arm_level_statistics/full_statistics/{sample}_arm_level_statistics.txt", sample=config["samples"]),
-        arm_changes = "data/processed/cnvs/PPGL.arm_level_changes.combined.txt",
-        annotSV = "data/processed/cnvs/PPGL.annotSV.data.combined.csv"
+        annotSV = "data/processed/cnvs/annotSV/mPPGL.annotSV.data.combined.txt",
+        changes = "data/processed/cnvs/arm_level_changes/mPPGL_arm_level_statistics.txt",
+        summary = "data/processed/cnvs/arm_level_changes/mPPGL_arm_level_summary.txt"
     
-rule combine_arm_level_statistics:
-    input:
-        flag=expand("data/processed/cnvs/arm_level_statistics/summary/{sample}_arm_level_summary.txt", sample=config["samples"]),
-        direct="data/processed/cnvs/arm_level_statistics/summary"
-    output: "data/processed/cnvs/PPGL.arm_level_changes.combined.txt"
-    shell: "python src/utilities/combine_txt.py -i={input.direct} -o={output}"
-
-rule combine_full_arm_level_statistics:
-    input:
-        flag=expand("data/processed/cnvs/arm_level_statistics/full_statistics/{sample}_arm_level_statistics.txt", sample=config["samples"]),
-        direct="data/processed/cnvs/arm_level_statistics/full_statistics"
-    output: "data/processed/cnvs/PPGL.full_arm_level_statistics.combined.txt"
-    shell: "python src/utilities/combine_txt.py -i={input.direct} -o={output}"
-
 rule calculate_arm_level_changes:
     input: 
-        data = "data/raw/cnvs/{sample}.sequenza.annotsv_gene_split.report.csv",
+        data = "data/processed/cnvs/annotSV/mPPGL.annotSV.data.combined.txt",
         cytos = "metadata/GrCh38.arm.coordinates.txt",
         ploidy = "metadata/Sequenza-Ploidy-Estimates.xlsx"
     output:
-        changes = "data/processed/cnvs/arm_level_statistics/full_statistics/{sample}_arm_level_statistics.txt",
-        summary = "data/processed/cnvs/arm_level_statistics/summary/{sample}_arm_level_summary.txt"
+        changes = "data/processed/cnvs/arm_level_changes/mPPGL_arm_level_statistics.txt",
+        summary = "data/processed/cnvs/arm_level_changes/mPPGL_arm_level_summary.txt"
     shell: "Rscript src/cnv_analysis/calculate_arm_level_changes.R --input={input.data} --cytobands={input.cytos} --ploidy={input.ploidy} "
         "--output={output.changes} --summary={output.summary}"
 
 rule combine_annotSV:
-    input: "data/raw/cnvs/"
-    output: "data/processed/cnvs/PPGL.annotSV.data.combined.csv"
+    input: "data/raw/cnvs/annotSV"
+    output: "data/processed/cnvs/annotSV/mPPGL.annotSV.data.combined.txt"
     shell: "python src/utilities/combine_files.py -i={input} -o={output}"
