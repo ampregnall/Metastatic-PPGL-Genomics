@@ -79,7 +79,7 @@ df <- df %>%
 arm_changes <- df %>% dplyr::mutate(Arm.Gain = case_when(amp >= 50 ~ 1, gain >= 50 ~ 1, TRUE ~ 0)) %>%
   dplyr::mutate(Arm.Loss = case_when(del >= 50 ~ 1, loss >= 50 ~ 1, TRUE ~ 0)) %>%
   dplyr::mutate(LOH = case_when( neutral >= 50 ~ 1, TRUE ~ 0)) %>%
-  dplyr::select(TumorID, Arm, Arm.Gain, Arm.Loss) %>%
+  dplyr::select(TumorID, Arm, Arm.Gain, Arm.Loss, LOH) %>%
   dplyr::rename(Sample = TumorID)
 
 ### SAVE RESULTS
