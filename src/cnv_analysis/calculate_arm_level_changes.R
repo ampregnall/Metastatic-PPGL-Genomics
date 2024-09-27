@@ -49,7 +49,7 @@ option_list <- list(
 opt_parser <- OptionParser(option_list = option_list)
 opt <- parse_args(opt_parser)
 
-df <- readr::read_csv(opt$input)
+df <- readr::read_delim(opt$input, delim = "\t")
 cytos <- readr::read_delim(opt$cytobands)
 ploidy <- readxl::read_xlsx(opt$ploidy, sheet = "tumors")
 
@@ -65,14 +65,20 @@ df <- df %>% dplyr::filter(SV.Start >= Start & SV.Start < End) %>%
   dplyr::left_join(ploidy, by = c("TumorID"="sample"))
 
 ### CALCULATE PERCENT OF ARM LOSS
-df <- df %>% dplyr::mutate(Percent.Change = case_when(Segment.Type %in% c("amp", "gain") & Segment.CN <= ploidyRounded ~ 0, TRUE ~ (Segment.Length / Arm.Length) * 100)) %>%
-  dplyr::group_by(TumorID, Arm, Segment.Type, .drop = FALSE) %>% 
+df <- df %>%
+  dplyr::mutate(Percent.Change = case_when(
+    Segment.Type %in% c("amp", "gain") & Segment.CN <= ploidyRounded ~ 0,
+    Segment.Type == "neutral" & Segment.Zyg != "loh" ~ 0,
+    TRUE ~ (Segment.Length / Arm.Length) * 100
+  )) %>%
+  dplyr::group_by(TumorID, Arm, Segment.Type, .drop = FALSE) %>%
   dplyr::summarise(Total = sum(Percent.Change)) %>%
-  reshape2::dcast(formula = TumorID + Arm ~ Segment.Type, fill = 0) 
+  reshape2::dcast(formula = TumorID + Arm ~ Segment.Type, fill = 0)
 
 ### CALCULATE BINARY GAIN OR LOSS VARIABLE
 arm_changes <- df %>% dplyr::mutate(Arm.Gain = case_when(amp >= 50 ~ 1, gain >= 50 ~ 1, TRUE ~ 0)) %>%
   dplyr::mutate(Arm.Loss = case_when(del >= 50 ~ 1, loss >= 50 ~ 1, TRUE ~ 0)) %>%
+  dplyr::mutate(LOH = case_when( neutral >= 50 ~ 1, TRUE ~ 0)) %>%
   dplyr::select(TumorID, Arm, Arm.Gain, Arm.Loss) %>%
   dplyr::rename(Sample = TumorID)
 
