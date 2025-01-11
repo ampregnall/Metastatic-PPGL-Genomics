@@ -96,16 +96,24 @@ snv.data <- map(snv.files, function(file) {
 }) %>% bind_rows()
 
 n_mutations <- nrow(snv.data)
+n_genes <- length(unique(snv.data$Gene))
+
+# Save combined data
+write_delim(snv.data, "data/processed/snvs/drivers/PPGL.somatic.data.combined.txt", delim = "\t")
 
 # Filter by Allele Depth --------------------------------------------------
 
 snv.data <- snv.data %>% filter(Tumor.AltDepth >= read_depth)
 n_mutations_rd <- nrow(snv.data)
+n_genes_rd <- length(unique(snv.data$Gene))
+
+write_delim(snv.data, "data/processed/snvs/drivers/PPGL.somatic.data.combined.filtered.txt", delim = "\t")
 
 # Filter by Clin.Var Annotations ------------------------------------------
 
 snv.data <- snv.data %>% filter(!str_detect(tolower(ClinVar.SIG), "benign"))
 n_mutations_clinvar <- nrow(snv.data)
+n_genes_clinvar <- length(unique(snv.data$Gene))
 
 # Apply filtering criteria to identify LOF/GOF mutations ------------------- 
 
@@ -116,14 +124,33 @@ snv.data <- snv.data %>%
                      Variant.Consequence %in% c("splice_acceptor_variant", "splice_donor_variant") ~ "LOF",
                      str_detect(Variant.Consequence, "missense_variant") & 
                        REVEL != "." & as.numeric(REVEL) > 0.5 ~ "LOF",
-                     TRUE ~ "GOF"))
+                     str_detect(Variant.Consequence, "missense_variant") & 
+                       (ClinVar.SIG %in% clin_var_filter | grepl("COSV", Existing.variation)) ~ "GOF",
+                     TRUE ~ "Unknown"))
 
 lof.data <- snv.data %>% filter(mutation.consequence == "LOF")
-gof.data <- snv.data %>% filter(mutation.consequence == "GOF") %>% 
-  filter(ClinVar.SIG %in% clin_var_filter | grepl("COSV", Existing.variation))
+gof.data <- snv.data %>% filter(mutation.consequence == "GOF")
+
+n_mutations_lof <- nrow(lof.data)
+n_genes_lof <- length(unique(lof.data$Gene))
+n_mutations_gof <- nrow(gof.data)
+n_genes_gof <- length(unique(gof.data$Gene))
+
+# Save filtered data
+write_delim(lof.data, "data/processed/snvs/drivers/PPGL.somatic.data.combined.filtered.LOF.txt", delim = "\t")
+write_delim(gof.data, "data/processed/snvs/drivers/PPGL.somatic.data.combined.filtered.GOF.txt", delim = "\t")
          
 # Filter by COSMIC --------------------------------------------------------
 
 cgc <- read_delim("metadata/cancer_census_genes_all_v98.tsv", delim = "\t")
 
-gof.data.tmp <- gof.data %>% filter(Gene %in% cgc$`Gene Symbol`) 
+lof.data <- lof.data %>% filter(Gene %in% cgc$`Gene Symbol`)
+gof.data <- gof.data %>% filter(Gene %in% cgc$`Gene Symbol`) 
+
+n_mutations_lof_cgc <- nrow(lof.data)
+n_genes_lof_cgc <- length(unique(lof.data$Gene))
+n_mutations_gof_cgc <- nrow(gof.data)
+n_genes_gof_cgc <- length(unique(gof.data$Gene))
+
+write_delim(lof.data, "data/processed/snvs/drivers/PPGL.somatic.data.combined.filtered.LOF.CGC.txt", delim = "\t")
+write_delim(gof.data, "data/processed/snvs/drivers/PPGL.somatic.data.combined.filtered.GOF.CGC.txt", delim = "\t")
