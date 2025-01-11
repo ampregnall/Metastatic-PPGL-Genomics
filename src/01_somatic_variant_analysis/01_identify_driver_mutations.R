@@ -1,6 +1,6 @@
 ## ---------------------------
-## Script Name: NAME
-## Description: PURPOSE
+## Script Name: 01_identify_driver_mutations.R
+## Description: Filter WES from mPPGL cohort to identify driver mutations
 ##
 ## Author: Andrew M. Pregnall
 ## Email: andrew.pregnall@pennmedicine.upenn.edu
