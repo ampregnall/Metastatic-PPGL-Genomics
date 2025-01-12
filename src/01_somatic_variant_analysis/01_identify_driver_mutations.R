@@ -118,7 +118,7 @@ n_genes_clinvar <- length(unique(snv.data$Gene))
 # Apply filtering criteria to identify LOF/GOF mutations ------------------- 
 
 snv.data <- snv.data %>% 
-  filter(gnomAD.MAX_AF == "." | as.numeric(gnomAD.MAX_AF) < 0) %>%
+  filter(gnomAD.MAX_AF == "." | as.numeric(gnomAD.MAX_AF) < allele_freq) %>%
   mutate(mutation.consequence = 
            case_when(str_detect(Variant.Consequence, "frameshift_variant|stop_gained") ~ "LOF",
                      Variant.Consequence %in% c("splice_acceptor_variant", "splice_donor_variant") ~ "LOF",
