@@ -29,12 +29,10 @@ muts_per_sample <- dplyr::mutate(muts_per_sample, germline_cat = case_when(germl
 
 # Define a function to create box plots
 create_plot <- function(data, x_var, y_var, fill_var, y_label, x_label) {
-  ggboxplot(data = data, x = x_var, y = y_var, fill = fill_var, 
+  ggviolin(data = data, x = x_var, y = y_var, fill = fill_var, 
             palette = c('#083D77', "#F4D35E"), ylab = y_label, 
             xlab = x_label, add = "jitter", 
             add.params = list(color = "#071E22", size = 2)) +
-    stat_compare_means(method = "wilcox.test", label.x = 1.5, size = 7, 
-                       aes(label = paste0("p = ", after_stat(p.format)))) +
     theme(legend.position = "none", 
           strip.background = element_blank(),
           strip.text = element_blank(),
@@ -51,13 +49,20 @@ plot1 <- create_plot(muts_per_sample, "category", "n_total", "category", "Count"
 plot2 <- create_plot(muts_per_sample, "tumor_type", "n_total", "tumor_type", "", "")
 plot3 <- create_plot(muts_per_sample, "germline_cat", "n_total", "germline_cat", "", "")
 
+# Edit legends
 plot2 <- plot2 + theme(axis.text.y = element_blank())
 plot3 <- plot3 + theme(axis.text.y = element_blank())
 
+# Statistical testing
+wilcox.test(n_total ~ tumor_type, data = muts_per_sample)
+aggregate(x = muts_per_sample$n_total, by = list(muts_per_sample$tumor_type), FUN = median)
 
 wilcox.test(n_total ~ category, data = muts_per_sample)
-wilcox.test(n_total ~ tumor_type, data = muts_per_sample)
+aggregate(x = muts_per_sample$n_total, by = list(muts_per_sample$category), FUN = median)
+
 wilcox.test(n_total ~ germline_cat, data = muts_per_sample)
+aggregate(x = muts_per_sample$n_total, by = list(muts_per_sample$germline_cat), FUN = median)
+
 
 # Create overall plot
 figure <- cowplot::plot_grid(plot1, plot2, plot3, nrow = 1)
