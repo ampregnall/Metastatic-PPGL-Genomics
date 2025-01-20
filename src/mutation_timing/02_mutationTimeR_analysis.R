@@ -16,10 +16,12 @@ col <- c("#4DAF4A", "#984EA3", "#377EB8", "#E41A1C", "#999999")
 read_depth <- 8
 allele_freq <- 0.01
 clin_var_filter <- c("Likely_pathogenic", "Pathogenic", "Pathogenic/Likely_pathogenic")
-drivers <- c("KMT2A", "KMT2D", "TRIP11", "AKAP9", "ZFHX3", "ATR", "TPR", "ATM", "GRIN2A", "POLR2A", "BRCA1", 
-             "MUC16", "ASXL1", "SETD2", "TET2", "KMT2C", "ATRX", "CHD2", "LRP1B", "POLQ", "UBR5", "CSMD3", "MTOR", 
-             "STAG1", "CREBBP", "ROS1", "SPEN", "FAT3", "BRCA2", "MYH9", "NSD1", "ASPM", "MUC4", "KAT6B", "FAT1", 
-             "CIC")
+drivers <- c(
+  "KMT2A", "KMT2D", "TRIP11", "AKAP9", "ZFHX3", "ATR", "TPR", "ATM", "GRIN2A", "POLR2A", "BRCA1",
+  "MUC16", "ASXL1", "SETD2", "TET2", "KMT2C", "ATRX", "CHD2", "LRP1B", "POLQ", "UBR5", "CSMD3", "MTOR",
+  "STAG1", "CREBBP", "ROS1", "SPEN", "FAT3", "BRCA2", "MYH9", "NSD1", "ASPM", "MUC4", "KAT6B", "FAT1",
+  "CIC"
+)
 
 # Load data -------
 files <- list.files(
