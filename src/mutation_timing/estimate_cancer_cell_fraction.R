@@ -1,5 +1,6 @@
 library(tidyverse)
 library(optparse)
+source("src/mutation_timing/estimate_mutation_timing.R")
 
 option_list <- list(
   make_option(c("-s", "--snv"),
@@ -41,14 +42,12 @@ mutations <- somatic_vars %>% dplyr::mutate(MutID = stringr::str_c(Chr, Start, G
   dplyr::mutate(Chr = as.character(Chr))
 
 ### Extract copy number info for each mutation; remove variants on X chromosome
-# cnv_per_mutation <- mutations %>% 
-#   dplyr::left_join(copy_number_vars, by=c("Chr"="chromosome"), relationship = "many-to-many") %>%
-#   dplyr::filter(Start >= start.pos & Start <= end.pos) %>% dplyr::filter(Chr != "X")
-
-### Extract copy number info for each mutation; remove variants on X chromosome
 cnv_per_mutation <- mutations %>% 
   dplyr::left_join(copy_number_vars, by=c("Gene"="Gene...2", "Chr"="SV.Chrom"), relationship = "many-to-many") %>%
   dplyr::filter(Start >= SV.Start & Start <= SV.End) %>% dplyr::filter(Chr != "X")
+
+### Extract max copy number
+max_cn <- max(cnv_per_mutation$Segment.CN)
 
 ### Estimate 95% CI of VAF
 cnv_per_mutation <- cnv_per_mutation %>% dplyr::rowwise() %>%
@@ -107,51 +106,14 @@ cnv_per_mutation <- cnv_per_mutation %>% dplyr::rowwise() %>%
   tidyr::unnest_wider(results) %>%
   dplyr::ungroup()
 
+### Estimate mutation timing
+cnv_per_mutation <- cnv_per_mutation %>% 
+  dplyr::rowwise() %>%
+  dplyr::mutate(timing = estimate_mutation_timing(max_cn = max_cn, 
+                                                  major_cn = Segment.CNa, 
+                                                  n_tumor = Tumor.Depth, 
+                                                  vaf = Tumor.AltFrac, 
+                                                  purity = purity))
+
 ### SAVE RESULTS
 readr::write_delim(cnv_per_mutation, opt$output, delim="\t")
-
-# SANDBOX -----------------------------------------------------------------
-
-### Get maximum copy number from sample
-#max_cn <- max(cnv_per_mutation$CNt)
-
-# ### Define function to create combinations of A/B alleles; borrowed from Sequenza 3.0
-# mufreq.types.matrix <- function(CNt.min, CNt.max, CNn = 2) {
-#   cn_ratio_vect <- seq(from = CNt.min / CNn, to = CNt.max / CNn, by = 1 / CNn)
-#   CNt <- cn_ratio_vect * CNn
-#   mut_comb <- lapply(CNt, FUN = function(x) seq(from = 0, to = x))
-#   times_muts <- sapply(mut_comb, length)
-#   data.frame(CNn = CNn, CNt = rep(CNt, times = times_muts),
-#              Mt = unlist(mut_comb))
-# }
-# 
-# ### Define matrix; filter for at least 1 B allele; calculate theoretical frequencies
-# types <- mufreq.types.matrix(CNt.min = 1, CNt.max = max_cn, CNn = 2)
-# types <- types %>% dplyr::filter(Mt >= 1)
-# 
-# ### Define function to calculate theoretical mutation frequency at various copy number states
-# theoretical.mufreq <- function(Mt, CNt, CNn = 2, cellularity) {
-#   normal.alleles <- (CNt - Mt) * cellularity + CNn * (1 - cellularity)
-#   all.alleles    <- (CNt * cellularity) + CNn * (1 - cellularity)
-#   1 - (normal.alleles / all.alleles)
-# }
-# 
-# ### Calculate expected mutation frequency at various copy number states
-# types <- types %>% dplyr::rowwise() %>%
-#   dplyr::mutate(test = theoretical.mufreq(Mt = Mt, CNt, CNn, cellularity = purity))
-# 
-# 
-# mufreq.dpois <- function(mufreq, mufreq.model, depth.t, seq.errors = 0.01) {
-#   mufreq.model[mufreq.model == 0] <- seq.errors
-#   n.success <- round(mufreq * depth.t, 0)
-#   dpois(x = n.success, lambda = mufreq.model * depth.t)
-# }
-# 
-# get.Mt <- function(F, depth.t, types, CNt, CNn, Mt){
-#   types <- types[types$CNn == CNn, ]
-#   l <- mufreq.dpois(mufreq = F, types$F[types$CNt== CNt&types$Mt<=Mt], depth.t = depth.t)
-#   l <- l/sum(l)
-#   L <- data.frame(l = l, Mt = types$Mt[types$CNt== CNt&types$Mt<=Mt])
-#   return(L)
-# }
-# 
