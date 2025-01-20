@@ -1,4 +1,6 @@
 library(tidyverse)
+library(ggpubr)
+library(ggbeeswarm)
 
 # Driver Mutation Clonality Analysis ------------------------------------------------------
 
@@ -81,6 +83,24 @@ primary_met_pairs <- tumor_pairs %>% dplyr::filter(type == "primary_metastasis")
 primary_met_pairs_pheo <- primary_met_pairs %>% dplyr::filter(sample1 %in% pheos)
 primary_met_pairs_para <- primary_met_pairs %>% dplyr::filter(sample1 %in% paras)
 
+tbl <- primary_met_pairs %>% dplyr::select(primary_private_clonal, primary_private_subclonal, 
+                                     metastasis_private_clonal,metastasis_private_subclonal) %>%
+  pivot_longer(cols = everything()) %>%
+  dplyr::group_by(name) %>%
+  dplyr::summarise(n = sum(value))
+
+tbl_pheo <- primary_met_pairs_pheo %>% dplyr::select(primary_private_clonal, primary_private_subclonal, 
+                                           metastasis_private_clonal,metastasis_private_subclonal) %>%
+  pivot_longer(cols = everything()) %>%
+  dplyr::group_by(name) %>%
+  dplyr::summarise(n = sum(value))
+
+tbl_para <- primary_met_pairs_para %>% dplyr::select(primary_private_clonal, primary_private_subclonal, 
+                                                     metastasis_private_clonal,metastasis_private_subclonal) %>%
+  pivot_longer(cols = everything()) %>%
+  dplyr::group_by(name) %>%
+  dplyr::summarise(n = sum(value))
+
 ### Define helper function to calculate proportion of primary private clonal mutations, 
 ### metastasis private clonal mutations, and shared clonal mutations
 calculate_clonal_proportions <- function(df, label) {
@@ -135,22 +155,22 @@ props <- props %>% dplyr::mutate(type_grouped = case_when(type %in% metastasis_p
 plot <- ggplot(props, aes(x = group, y = proportion, fill = type_grouped)) +
   geom_bar(stat = "identity", position = "stack") +
   facet_wrap(~ facet_label, nrow=1) +
-  labs(title = "Proportion of Different Classes of Clonal and Subclonal Driver Mutations",
-       x = "", y = "Proportion", fill = "Type") +
+  labs(title = "",
+       x = "", y = "", fill = "Type") +
   scale_fill_manual(values = c("#DF6050", "#4BA789", "#62A1CA"),
                     labels = c("Metastasis-private", "Primary-private", "Shared")) +
   theme_minimal() + theme(plot.title = element_text(size = 16, hjust=0.5),
-                          axis.text.x = element_text(size = 16),
-                          axis.text.y = element_text(size = 16),
-                          axis.title.x = element_text(size = 16),
+                          axis.text.x = element_blank(),
+                          axis.text.y = element_blank(),
+                          axis.title.x = element_blank(),
                           axis.title.y = element_text(size = 16),
                           legend.title = element_blank(),
                           legend.text = element_text(size = 16), 
-                          legend.position = "bottom",
-                          strip.text = element_text(size = 16))
+                          legend.position = "none",
+                          strip.text = element_blank())
 
 ### Save results
-pdf("results/figures/clonality_analysis/driver_clonality.pdf", width = 16, height = 8.5)
+pdf("results/figures/clonality_analysis/driver_clonality.pdf", width = 3.75, height = 1.5)
 print(plot)
 dev.off()
 
@@ -192,22 +212,22 @@ props <- props %>% dplyr::mutate(type_grouped = case_when(type %in% metastasis_p
 plot <- ggplot(props, aes(x = group, y = proportion, fill = type_grouped)) +
   geom_bar(stat = "identity", position = "stack") +
   facet_wrap(~ facet_label, nrow=1) +
-  labs(title = "Proportion of Different Classes of Clonal and Subclonal Driver Mutations",
-       x = "", y = "Proportion", fill = "Type") +
+  labs(title = "",
+       x = "", y = "", fill = "Type") +
   scale_fill_manual(values = c("#DF6050", "#4BA789", "#62A1CA"),
                     labels = c("Metastasis-private", "Primary-private", "Shared")) +
   theme_minimal() + theme(plot.title = element_text(size = 16, hjust=0.5),
-                          axis.text.x = element_text(size = 16),
-                          axis.text.y = element_text(size = 16),
-                          axis.title.x = element_text(size = 16),
+                          axis.text.x = element_blank(),
+                          axis.text.y = element_blank(),
+                          axis.title.x = element_blank(),
                           axis.title.y = element_text(size = 16),
                           legend.title = element_blank(),
                           legend.text = element_text(size = 16), 
-                          legend.position = "bottom",
-                          strip.text = element_text(size = 16))
+                          legend.position = "none",
+                          strip.text = element_blank())
 
 ### Save results
-pdf("results/figures/clonality_analysis/mutation_clonality.pdf", width = 16, height = 8.5)
+pdf("results/figures/clonality_analysis/mutation_clonality.pdf", width = 3.75, height = 1.5)
 print(plot)
 dev.off()
 
@@ -237,3 +257,21 @@ aggregate(metastasis_private_clonal ~ Seeding, data=df, summary)
 
 wilcox.test(shared_subclonal ~ Seeding, data=df)
 aggregate(shared_subclonal ~ Seeding, data=df, summary)
+
+df_p <- dplyr::filter(df, Seeding == "Polyclonal")
+df_m <- dplyr::filter(df, Seeding == "Monoclonal")
+
+### Create plot
+p1 <- ggplot(df_m, aes(x = type, y=JSI)) + 
+  geom_beeswarm(size = 3, cex = 3, color = "#2E86AB") +
+  geom_beeswarm(data = df_p, aes(type, y = JSI), size = 3, cex = 3, color = "#564138") +
+  xlab("") + ylim(0, 0.6) + theme_minimal() + 
+  theme(axis.text.y = element_text(size = 8), 
+        axis.title = element_blank(), 
+        axis.text.x = element_blank())
+
+### Save results
+pdf("results/figures/clonality_analysis/jaccard_beeswarm.pdf", width = 6, height = 4.5)
+print(p1)
+dev.off()
+
