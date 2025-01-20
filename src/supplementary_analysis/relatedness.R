@@ -37,7 +37,8 @@ df3$tumor_1_vars <- tumor_1_vars
 df3$percent <- df3$shared_vars / df3$tumor_1_vars * 100
 df3$cat <- "cat"
 
-mean(df3$percent)
+median(df3$percent)
+summary(df3$percent)
 
 plot <- ggplot(df3, aes(x = cat, y=percent)) + 
   geom_beeswarm(size = 3, cex = 3, color = "#7260a6") + xlab("") + 
