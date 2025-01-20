@@ -26,3 +26,7 @@
 *.rpt
 *.css
 *.rda
+*.err
+*.gistic
+*.mat
+*.bed
