@@ -40,8 +40,8 @@ tumor_metadata[is.na(tumor_metadata)] <- 0
 ### Create variant classification for Oncoplot
 cnv_matrix <- cnvs_arm_level %>% 
   dplyr::mutate(Change = case_when(Arm.Gain == 1 ~ "Gain", Arm.Loss == 1 ~ "Loss", LOH == 1 ~ "Neutral LOH", TRUE ~ "")) %>%
-  dplyr::select(Sample, Arm, Change) %>%
-  tidyr::pivot_wider(names_from = Arm, values_from = Change)
+  dplyr::select(Sample, arm, Change) %>%
+  tidyr::pivot_wider(names_from = arm, values_from = Change)
 
 ### Transform into Oncoplot input
 cnv_matrix <- as.data.frame(cnv_matrix)
@@ -94,13 +94,13 @@ dev.off()
 # Plot number of gains/losses per arm -------------------------------------
 
 cnv_summary <- cnvs_arm_level %>% 
-  dplyr::group_by(Arm) %>%
+  dplyr::group_by(arm) %>%
   dplyr::summarise(Gain.Count = sum(Arm.Gain), Loss.Count = sum(Arm.Loss), LOH.Count = sum(LOH)) %>%
   tidyr::pivot_longer(cols = Gain.Count:LOH.Count) %>%
-  dplyr::mutate(Arm = factor(Arm, levels = arms))
+  dplyr::mutate(arm = factor(arm, levels = arms))
 
-plot <- ggplot(cnv_summary, aes(x=Arm, y=value, fill=name)) + 
-  geom_bar(stat = "identity") + 
+plot <- ggplot(cnv_summary, aes(x=arm, y=value, fill=name)) + 
+  geom_bar(stat = "identity", width = 0.8) + 
   scale_fill_manual(values = c("#d8031c", "#01016f", "#b4d5e4"), breaks = c("Gain.Count", "Loss.Count", "LOH.Count")) +
   theme_minimal() + theme(strip.background = element_blank(),
                             strip.text = element_blank(),
