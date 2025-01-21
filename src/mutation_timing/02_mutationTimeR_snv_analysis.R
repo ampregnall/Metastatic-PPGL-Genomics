@@ -23,6 +23,10 @@ drivers <- c(
   "CIC"
 )
 
+# Define variables
+clonal <- c("clonal [late]", "clonal [NA]", "clonal [early]")
+subclonal <- c("subclonal")
+
 # Load data -------
 files <- list.files(
   path = "data/processed/mutation_timing/MutationTimeR/variant_timing",
@@ -246,13 +250,169 @@ plt4 <- ggplot(df.drivers.prop, aes(x = reorder(Gene, -total), y = n, fill = CLS
   scale_fill_manual(values = col) +
   theme_minimal() +
   theme(
-    axis.text.x = element_text(angle = 90, hjust = 1),
-    plot.title = element_text(hjust = 0.5)
+    axis.text.x = element_text(angle = 90, hjust = 1, size = 6),
+    axis.text.y = element_text(size = 6),
+    axis.title.y = element_text(size = 6),
+    plot.title = element_text(hjust = 0.5, size = 8),
+    panel.grid = element_blank()
   ) +
-  labs(x = "Gene", y = "Number of Mutations", fill = "Mutation Type") +
+  labs(x = "", y = "Count", fill = "") +
   ggtitle("Proportion of Timing Estimates for Driver Mutations") +
-  theme(legend.position = "bottom")
+  theme(legend.position = "none")
 
-pdf("results/figures/mutational_timing/mutation_timing_driver_mutations.pdf", width = 10, height = 5)
+pdf("results/figures/mutational_timing/mutation_timing_driver_mutations.pdf", width = 7.5, height = 1.5)
 print(plt4)
+dev.off()
+
+### Load metadata and extract whether samples are pheo or para
+meta <- readxl::read_xlsx("metadata/mPPGL-Metadata.xlsx", sheet = "tumors")
+pheos <- dplyr::filter(meta, tumor_type == "PCC")$sample
+paras <- dplyr::filter(meta, tumor_type == "PGL")$sample
+
+df.drivers <- df.drivers %>% mutate(MutID = str_c(Chr, Start, Gene, REF, ALT, sep = "-"))
+
+### Load list of paired samples and limit to primary-metastasis pairs
+tumor_pairs <- readxl::read_xlsx("metadata/mPPGL-Metadata.xlsx", sheet = "paired")
+
+### Define empty vectors to store mutation information
+metastasis_private_clonal <- vector(mode = "numeric", length = nrow(tumor_pairs))
+primary_private_clonal <- vector(mode = "numeric", length = nrow(tumor_pairs))
+metastasis_private_subclonal <- vector(mode = "numeric", length = nrow(tumor_pairs))
+primary_private_subclonal <- vector(mode = "numeric", length = nrow(tumor_pairs))
+shared_subclonal <- vector(mode = "numeric", length = nrow(tumor_pairs))
+shared_clonal <- vector(mode = "numeric", length = nrow(tumor_pairs))
+
+### Loop through sample pairs to calculate number of private/shared clonal/subclonal mutations
+for (row in 1:nrow(tumor_pairs)) {
+  # Select mutations for each sample
+  tmp1 <- df.drivers %>% dplyr::filter(Tumor.ID == tumor_pairs[row, "sample1"]$sample1)
+  tmp2 <- df.drivers %>% dplyr::filter(Tumor.ID == tumor_pairs[row, "sample2"]$sample2)
+  
+  ### Count number of private clonal mutations in metastasis
+  metastasis_private_clonal_priv <- tmp2 %>% dplyr::filter(CLS %in% clonal & !(MutID %in% tmp1$MutID))
+  metastasis_private_clonal[row] <- nrow(metastasis_private_clonal_priv)
+  
+  ### Count number of private clonal mutations in primary
+  primary_private_clonal_priv <- tmp1 %>% dplyr::filter(CLS %in% clonal & !(MutID %in% tmp2$MutID))
+  primary_private_clonal[row] <- nrow(primary_private_clonal_priv)
+  
+  ### Count number of private subclonal mutations in primary
+  metastasis_private_subclonal_priv <- tmp2 %>% dplyr::filter(CLS %in% subclonal & !(MutID %in% tmp1$MutID))
+  metastasis_private_subclonal[row] <- nrow(metastasis_private_subclonal_priv)
+  
+  ### Count number of private subclonal mutations in primary
+  primary_private_subclonal_priv <- tmp1 %>% dplyr::filter(CLS %in% subclonal & !(MutID %in% tmp2$MutID))
+  primary_private_subclonal[row] <- nrow(primary_private_subclonal_priv)
+  
+  ### Count number of shared subclonal mutation in paired samples
+  shared_mutations <- intersect(tmp1$MutID, tmp2$MutID)
+  shared_subclonal_priv <- tmp1 %>% dplyr::filter(CLS %in% subclonal & MutID %in% shared_mutations)
+  shared_clonal_priv <- tmp1 %>% dplyr::filter(CLS %in% clonal & MutID %in% shared_mutations)
+  
+  shared_subclonal[row] <- nrow(shared_subclonal_priv)
+}
+  
+
+### Add data to dataframe
+tumor_pairs$primary_private_clonal <- primary_private_clonal
+tumor_pairs$metastasis_private_clonal <- metastasis_private_clonal
+tumor_pairs$metastasis_private_subclonal <- metastasis_private_subclonal
+tumor_pairs$primary_private_subclonal <- primary_private_subclonal
+tumor_pairs$shared_subclonal <- shared_subclonal
+tumor_pairs$shared_clonal <- shared_clonal
+
+### Select primary-met pairs only
+primary_met_pairs <- tumor_pairs %>% dplyr::filter(type == "primary_metastasis")
+primary_met_pairs_pheo <- primary_met_pairs %>% dplyr::filter(sample1 %in% pheos)
+primary_met_pairs_para <- primary_met_pairs %>% dplyr::filter(sample1 %in% paras)
+
+tbl <- primary_met_pairs %>% dplyr::select(primary_private_clonal, primary_private_subclonal, 
+                                           metastasis_private_clonal,metastasis_private_subclonal) %>%
+  pivot_longer(cols = everything()) %>%
+  dplyr::group_by(name) %>%
+  dplyr::summarise(n = sum(value))
+
+tbl_pheo <- primary_met_pairs_pheo %>% dplyr::select(primary_private_clonal, primary_private_subclonal, 
+                                                     metastasis_private_clonal,metastasis_private_subclonal) %>%
+  pivot_longer(cols = everything()) %>%
+  dplyr::group_by(name) %>%
+  dplyr::summarise(n = sum(value))
+
+tbl_para <- primary_met_pairs_para %>% dplyr::select(primary_private_clonal, primary_private_subclonal, 
+                                                     metastasis_private_clonal,metastasis_private_subclonal) %>%
+  pivot_longer(cols = everything()) %>%
+  dplyr::group_by(name) %>%
+  dplyr::summarise(n = sum(value))
+
+### Define helper function to calculate proportion of primary private clonal mutations, 
+### metastasis private clonal mutations, and shared clonal mutations
+calculate_clonal_proportions <- function(df, label) {
+  tmp <- df %>% dplyr::select(primary_private_clonal, metastasis_private_clonal, shared_clonal) %>%
+    colSums() %>% as_tibble(rownames = NA) %>% tibble::rownames_to_column(var = "type") %>%
+    dplyr::mutate(proportion = value / sum(value))
+  tmp$group <- label
+  return(tmp)
+} 
+
+### Calculate proportions as above
+clonal_prop_all <- calculate_clonal_proportions(primary_met_pairs, "All")
+clonal_prop_pheo <- calculate_clonal_proportions(primary_met_pairs_pheo, "Pheo.")
+clonal_prop_para <- calculate_clonal_proportions(primary_met_pairs_para, "Para.") 
+
+### Bind data and label
+clonal_prop <- rbind(clonal_prop_all, clonal_prop_para, clonal_prop_pheo)
+clonal_prop$facet_label <- "Clonal drivers"
+
+### Define helper function to calculate proportion of primary private subclonal mutations, 
+### metastasis private subclonal mutations, and shared subclonal mutations
+calculate_subclonal_proportions <- function(df, label) {
+  tmp <- df %>% dplyr::select(primary_private_subclonal, metastasis_private_subclonal, shared_subclonal) %>%
+    colSums() %>% as_tibble(rownames = NA) %>% tibble::rownames_to_column(var = "type") %>%
+    dplyr::mutate(proportion = value / sum(value))
+  tmp$group <- label
+  return(tmp)
+}
+
+### Calculate proportions as above
+subclonal_prop_all <- calculate_subclonal_proportions(primary_met_pairs, "All")
+subclonal_prop_pheo <- calculate_subclonal_proportions(primary_met_pairs_pheo, "Pheo.")
+subclonal_prop_para <- calculate_subclonal_proportions(primary_met_pairs_para, "Para.") 
+
+### Bind data and label
+subclonal_prop <- rbind(subclonal_prop_all, subclonal_prop_para, subclonal_prop_pheo)
+subclonal_prop$facet_label <- "Subclonal drivers"
+
+### Create plotting data
+props <- rbind(clonal_prop, subclonal_prop)
+
+### Create categorical group for mutation type
+metastasis_private <- c("metastasis_private_clonal", "metastasis_private_subclonal")
+primary_private <- c("primary_private_clonal", "primary_private_subclonal")
+shared <- c("shared_clonal", "shared_subclonal")
+
+props <- props %>% dplyr::mutate(type_grouped = case_when(type %in% metastasis_private ~ "Metastasis-private",
+                                                          type %in% primary_private ~ "Primary-private",
+                                                          type %in% shared ~ "Shared"))
+
+### Create plot
+plt5 <- ggplot(props, aes(x = group, y = proportion, fill = type_grouped)) +
+  geom_bar(stat = "identity", position = "stack") +
+  facet_wrap(~ facet_label, nrow=1) +
+  labs(title = "",
+       x = "", y = "", fill = "Type") +
+  scale_fill_manual(values = c("#DF6050", "#4BA789", "#62A1CA"),
+                    labels = c("Metastasis-private", "Primary-private", "Shared")) +
+  theme_minimal() + theme(plot.title = element_text(size = 16, hjust=0.5),
+                          axis.text.x = element_text(size = 6),
+                          axis.text.y = element_text(size = 6),
+                          axis.title.x = element_blank(),
+                          axis.title.y = element_text(size = 16),
+                          legend.title = element_blank(),
+                          legend.text = element_text(size = 16), 
+                          legend.position = "none",
+                          strip.text = element_text(size = 8))
+
+### Save results
+pdf("results/figures/mutational_timing/driver_clonality.pdf", width = 5.4, height = 1.7)
+print(plt5)
 dev.off()
