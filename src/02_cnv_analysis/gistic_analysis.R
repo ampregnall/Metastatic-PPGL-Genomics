@@ -62,8 +62,21 @@ gistic.prim = readGistic(gisticAllLesionsFile = "data/processed/cnvs/gistic/gist
 # Create overall plot
 gisticChromPlot(gistic = gistic.all, markBands = "all")
 
-coGisticChromPlot(gistic1 = gistic.prim, gistic2 = gistic.met, g1Name = "Primary", g2Name = "Metastatic", type = 'Amp')
-coGisticChromPlot(gistic1 = gistic.prim, gistic2 = gistic.met, g1Name = "Primary", g2Name = "Metastatic", type = 'Del')
+### Save results
+pdf("results/figures/cnv_analysis/gistic_coplot_amp.pdf", width = 9, height = 12)
+print(coGisticChromPlot(gistic1 = gistic.prim, 
+                        gistic2 = gistic.met, 
+                        g1Name = "Primary", 
+                        g2Name = "Metastatic", 
+                        type = 'Amp'))
+dev.off()
 
 
+
+pdf("results/figures/cnv_analysis/gistic_coplot_del.pdf", width = 9, height = 12)
+print(coGisticChromPlot(gistic1 = gistic.prim, 
+                  gistic2 = gistic.met, 
+                  g1Name = "Primary", 
+                  g2Name = "Metastatic", type = 'Del'))
+dev.off()
 
