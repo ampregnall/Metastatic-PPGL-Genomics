@@ -31,3 +31,4 @@
 *.mat
 *.bed
 *.json
+.ipynb_checkpoints
