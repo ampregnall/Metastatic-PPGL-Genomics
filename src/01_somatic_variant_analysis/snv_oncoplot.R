@@ -58,8 +58,6 @@ tumor_metadata[is.na(tumor_metadata)] <- 0
 
 # Prepare mutational signature data ---------------------------------------
 
-# Plot signatures ---------------------------------------------------------
-
 # Load SBS signatures
 sigs <- read_delim("data/processed/mutational_signatures/SigProfilerExtractor_SBS/SBS96/Suggested_Solution/COSMIC_SBS96_Decomposed_Solution/Activities/COSMIC_SBS96_Activities.txt", delim = "\t")
 sigs <- as.data.frame(sigs)
@@ -125,7 +123,7 @@ mutation <- c(
 
 tumor <- c(
   "PCC" = "#879eb3",
-  "PGL" = "#ad823a"
+  "PGL" = "#542E71"
 )
 
 germline <- c(
@@ -146,6 +144,7 @@ alter_fun <- list(
 
 # Set graphical parameters
 ht_opt$COLUMN_ANNO_PADDING <- unit(4, "mm")
+ht_opt$ROW_ANNO_PADDING <- unit(4, "mm")
 
 ### Create oncoPrint
 plot1 <- oncoPrint(mut_matrix,
@@ -153,7 +152,7 @@ plot1 <- oncoPrint(mut_matrix,
   column_order = tumor_metadata$sample, show_heatmap_legend = FALSE,
   top_annotation = HeatmapAnnotation(
     TMB = anno_barplot(tumor_metadata$tmb, height = unit(1, "in"), border = FALSE, axis_param = list(gp = gpar(fontsize = 12))),
-    Driver = anno_barplot(tumor_metadata$n_mutations, height = unit(1, "in"), border = FALSE, axis_param = list(gp = gpar(fontsize = 12))),
+    # Driver = anno_barplot(tumor_metadata$n_mutations, height = unit(1, "in"), border = FALSE, axis_param = list(gp = gpar(fontsize = 12))),
     Germline = anno_simple(tumor_metadata$germline, col = germline),
     Tumor = anno_simple(x = tumor_metadata$tumor_type, col = tumor),
     Type = anno_simple(x = tumor_metadata$category, col = category),
@@ -189,72 +188,4 @@ plot1 <- oncoPrint(mut_matrix,
 ### Save results
 pdf("results/figures/driver_analysis/snv_oncoplot.pdf", width = 15, height = 12)
 print(plot1)
-dev.off()
-
-
-# Oncoplot Sensitivity Analysis -------------------------------------------
-
-# Load sample information
-tumor_metadata <- readxl::read_xlsx("metadata/mPPGL-Metadata.xlsx", sheet = "tumors")
-tumor_metadata <- tumor_metadata %>% dplyr::arrange(order)
-samples <- tumor_metadata %>% dplyr::select(sample)
-
-# Calculate score for number of callers that support a mutation
-drivers <- drivers %>%
-  mutate(LANCET = case_when(LANCET == "PASS" ~ 1, TRUE ~ 0)) %>%
-  mutate(MUTECT2 = case_when(MUTECT2 == "PASS" ~ 1, TRUE ~ 0)) %>%
-  mutate(STRELKA2 = case_when(STRELKA2 == "PASS" ~ 1, TRUE ~ 0)) %>%
-  mutate(VARDICT = case_when(VARDICT == "PASS" ~ 1, TRUE ~ 0)) %>%
-  mutate(VARSCAN2 = case_when(VARSCAN2 == "PASS" ~ 1, TRUE ~ 0)) %>%
-  rowwise() %>%
-  mutate(SCORE = LANCET + MUTECT2 + STRELKA2 + VARDICT + VARSCAN2) %>%
-  filter(!(Variant.Class != "SNV" & SCORE < 2))
-
-# Calculate mutation burden of LOF mutations
-driver_count <- drivers %>%
-  group_by(Tumor.ID) %>%
-  summarise(n_mutations = n())
-
-# Merge information and calculate number of driver mutations
-tumor_metadata <- left_join(tumor_metadata, driver_count, by = c("sample" = "Tumor.ID"))
-tumor_metadata <- left_join(tumor_metadata, tmb[, -2], by = c("sample" = "Tumor.ID"))
-tumor_metadata[is.na(tumor_metadata)] <- 0
-
-# Get matrix of variants in cohort
-mut_matrix <- drivers %>%
-  distinct(Tumor.ID, Gene, .keep_all = TRUE) %>%
-  select(Tumor.ID, Gene, Variant.Type) %>%
-  pivot_wider(names_from = Gene, id_cols = Tumor.ID, values_from = Variant.Type)
-
-# Some samples have no mutations; add back into matrix
-mut_matrix <- left_join(samples, mut_matrix, by = c("sample" = "Tumor.ID"))
-
-### Limit matrix to genes mutated in at least 6 samples
-mut_matrix <- mut_matrix[colSums(is.na(mut_matrix)) <= 42]
-
-### Transform into Oncoplot input
-mut_matrix <- as.data.frame(mut_matrix)
-mut_matrix[is.na(mut_matrix)] <- ""
-rownames(mut_matrix) <- mut_matrix[, 1]
-mut_matrix <- mut_matrix[match(samples$sample, rownames(mut_matrix)), ]
-mut_matrix <- mut_matrix[, -1]
-mut_matrix <- t(as.matrix(mut_matrix))
-
-### Create oncoPrint
-plot2 <- oncoPrint(mut_matrix,
-  alter_fun = alter_fun, col = mutation, show_column_names = FALSE,
-  column_order = tumor_metadata$sample, show_heatmap_legend = FALSE, 
-  top_annotation = HeatmapAnnotation(
-    TMB = anno_barplot(tumor_metadata$tmb, height = unit(1, "in"), border = FALSE, axis_param = list(gp = gpar(fontsize = 12))),
-    Driver = anno_barplot(tumor_metadata$n_mutations, height = unit(1, "in"), border = FALSE, axis_param = list(gp = gpar(fontsize = 12))),
-    Germline = anno_simple(tumor_metadata$germline, col = germline),
-    Tumor = anno_simple(x = tumor_metadata$tumor_type, col = tumor),
-    Type = anno_simple(x = tumor_metadata$category, col = category),
-    show_legend = TRUE
-  )
-)
-
-### Save results
-pdf("results/figures/driver_analysis/snv_oncoplot_sensitivity_analysis.pdf", width = 15, height = 12)
-print(plot2)
 dev.off()
