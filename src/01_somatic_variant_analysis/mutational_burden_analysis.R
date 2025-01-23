@@ -1,29 +1,63 @@
+## ---------------------------
+## Script Name: NAME
+## Description: PURPOSE
+##
+## Author: Andrew M. Pregnall
+## Email: andrew.pregnall@pennmedicine.upenn.edu
+## 
+## Date Created: 2025-01-23
+## Copyright (c) Andrew Pregnall, 2025
+## ---------------------------
+
+# Load packages
 library(tidyverse)
 library(ggpubr)
 library(cowplot)
 
-# Read in somatic variant data
-df1 <- readr::read_delim("data/processed/snvs/drivers/PPGL.somatic.data.combined.filtered.LOF.txt")
-df2 <- readr::read_delim("data/processed/snvs/drivers/PPGL.somatic.data.combined.filtered.GOF.txt")
+# Define variables
+panel_size <- 35.7
+read_depth <- 8
+allele_freq <- 0.01
+sdh <- c("SDHB", "SDHA", "SDHC")
+
+# Load sample information
 tumor_metadata <- readxl::read_xlsx("metadata/mPPGL-Metadata.xlsx", sheet = "tumors")
 
-### Calculate number of LOF mutations per sample
-df1_summary <- df1 %>% dplyr::group_by(Tumor.ID) %>%
-  dplyr::summarise(n_lof = n())
+# Calculate tumor mutational burden ---------------------------------------
 
-### Filter for GOF mutations and calculate mutations per sample
-df2_summary <- df1 %>% dplyr::group_by(Tumor.ID) %>%
-  dplyr::summarise(n_gof = n())
+snvs <- read_delim("data/processed/snvs/drivers/PPGL.somatic.data.combined.txt")
+
+snvs <- snvs %>%
+  filter(Tumor.AltDepth >= read_depth) %>%
+  filter(gnomAD.MAX_AF == "." | as.numeric(gnomAD.MAX_AF) < allele_freq) %>%
+  filter(EXON != ".") %>% # Select exonic mutations
+  filter(!str_detect(Variant.Consequence, "synonymous_variant")) # Remove synonymous mutations
+
+tmb <- snvs %>%
+  group_by(Tumor.ID) %>%
+  summarise(n_mutations = n()) %>%
+  mutate(tmb = n_mutations / panel_size)
+
+tumor_metadata <- left_join(tumor_metadata, tmb[, -2], by = c("sample" = "Tumor.ID"))
+
+# Calculate number of driver mutations per sample  -------------------------
+
+# Load driver information
+lof <- read_delim("data/processed/snvs/drivers/PPGL.somatic.data.combined.filtered.LOF.CGC.txt")
+gof <- read_delim("data/processed/snvs/drivers/PPGL.somatic.data.combined.filtered.GOF.CGC.txt")
+drivers <- rbind(lof, gof)
+
+### Calculate number of LOF mutations per sample
+drivers_summary <- drivers %>%
+  group_by(Tumor.ID) %>%
+  summarise(n_muts = n())
 
 ### Join data frames into summary for plotting
-muts_per_sample <- dplyr::left_join(tumor_metadata, df1_summary, by=c("sample" = "Tumor.ID"))
-muts_per_sample <- muts_per_sample %>% dplyr::left_join(df2_summary, by=c("sample" = "Tumor.ID")) 
-muts_per_sample$n_total <- muts_per_sample$n_gof + muts_per_sample$n_lof
-muts_per_sample[is.na(muts_per_sample)] = 0
+tumor_metadata <- left_join(tumor_metadata, drivers_summary, by = c("sample" = "Tumor.ID"))
+tumor_metadata[is.na(tumor_metadata)] = 0
 
 ### Create SDH category
-sdh <- c("SDHB", "SDHA", "SDHC")
-muts_per_sample <- dplyr::mutate(muts_per_sample, germline_cat = case_when(germline %in% sdh ~ "SDHx", TRUE ~ "Non-SDHx"))
+tumor_metadata <- mutate(tumor_metadata, germline_cat = case_when(germline %in% sdh ~ "SDHx", TRUE ~ "Non-SDHx"))
 
 # Purity Plots ------------------------------------------------------------
 
@@ -37,37 +71,62 @@ create_plot <- function(data, x_var, y_var, fill_var, y_label, x_label) {
           strip.background = element_blank(),
           strip.text = element_blank(),
           panel.border = element_blank(),
-          axis.text.x = element_text(size = 8, color = "black"),
-          axis.text.y = element_text(size = 8, color = "black"),
-          axis.title.x = element_text(size = 8),
-          axis.title.y = element_text(size = 8),
+          axis.text.x = element_text(size = 6, color = "black"),
+          axis.text.y = element_text(size = 6, color = "black"),
+          axis.title.x = element_text(size = 6),
+          axis.title.y = element_text(size = 6),
           axis.line.y = element_line())
 }
 
+
+# Plotting and statistical testing for tumor mutation burden --------------
+
 # Create plots
-plot1 <- create_plot(muts_per_sample, "category", "n_total", "category", "Count", "")
-plot2 <- create_plot(muts_per_sample, "tumor_type", "n_total", "tumor_type", "", "")
-plot3 <- create_plot(muts_per_sample, "germline_cat", "n_total", "germline_cat", "", "")
+plot1 <- create_plot(tumor_metadata, "category", "tmb", "category", "TMB", "")
+plot2 <- create_plot(tumor_metadata, "tumor_type", "tmb", "tumor_type", "", "")
+plot3 <- create_plot(tumor_metadata, "germline_cat", "tmb", "germline_cat", "", "")
 
 # Edit legends
 plot2 <- plot2 + theme(axis.text.y = element_blank())
 plot3 <- plot3 + theme(axis.text.y = element_blank())
 
 # Statistical testing
-wilcox.test(n_total ~ tumor_type, data = muts_per_sample)
-aggregate(x = muts_per_sample$n_total, by = list(muts_per_sample$tumor_type), FUN = median)
+wilcox.test(tmb ~ tumor_type, data = tumor_metadata)
+aggregate(x = tumor_metadata$tmb, by = list(tumor_metadata$tumor_type), FUN = median)
 
-wilcox.test(n_total ~ category, data = muts_per_sample)
-aggregate(x = muts_per_sample$n_total, by = list(muts_per_sample$category), FUN = median)
+wilcox.test(tmb ~ category, data = tumor_metadata)
+aggregate(x = tumor_metadata$tmb, by = list(tumor_metadata$category), FUN = median)
 
-wilcox.test(n_total ~ germline_cat, data = muts_per_sample)
-aggregate(x = muts_per_sample$n_total, by = list(muts_per_sample$germline_cat), FUN = median)
+wilcox.test(tmb ~ germline_cat, data = tumor_metadata)
+aggregate(x = tumor_metadata$tmb, by = list(tumor_metadata$germline_cat), FUN = median)
+
+
+# Plotting and statistical testing for n drivers --------------------------
+
+# Create plots
+plot4 <- create_plot(tumor_metadata, "category", "n_muts", "category", "Drivers (Count)", "")
+plot5 <- create_plot(tumor_metadata, "tumor_type", "n_muts", "tumor_type", "", "")
+plot6 <- create_plot(tumor_metadata, "germline_cat", "n_muts", "germline_cat", "", "")
+
+# Edit legends
+plot5 <- plot5 + theme(axis.text.y = element_blank())
+plot6 <- plot6 + theme(axis.text.y = element_blank())
+
+# Statistical testing
+wilcox.test(n_muts ~ tumor_type, data = tumor_metadata)
+aggregate(x = tumor_metadata$n_muts, by = list(tumor_metadata$tumor_type), FUN = median)
+
+wilcox.test(n_muts ~ category, data = tumor_metadata)
+aggregate(x = tumor_metadata$n_muts, by = list(tumor_metadata$category), FUN = median)
+
+wilcox.test(n_muts ~ germline_cat, data = tumor_metadata)
+aggregate(x = tumor_metadata$n_muts, by = list(tumor_metadata$germline_cat), FUN = median)
 
 
 # Create overall plot
-figure <- cowplot::plot_grid(plot1, plot2, plot3, nrow = 1)
+figure <- cowplot::plot_grid(plot1, plot2, plot3, plot4, plot5, plot6, nrow = 2)
 
 ### Save results
-pdf("results/figures/driver_analysis/mutational_burden_comparison.pdf", width = 7.5, height = 5)
+pdf("results/figures/driver_analysis/mutational_burden_comparison.pdf", width = 7.5, height = 7.5)
 print(figure)
 dev.off()
