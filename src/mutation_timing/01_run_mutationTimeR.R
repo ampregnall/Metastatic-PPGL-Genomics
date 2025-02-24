@@ -129,8 +129,8 @@ process.MutTimeR.snvs <- function(snv) {
 
   # Create info portion of GRanges object
   counts <- snv %>%
-    select(Tumor.Depth, Tumor.AltDepth) %>%
-    rename(t_ref_count = Tumor.Depth, t_alt_count = Tumor.AltDepth)
+    dplyr::select(Tumor.Depth, Tumor.AltDepth) %>%
+    dplyr::rename(t_ref_count = Tumor.Depth, t_alt_count = Tumor.AltDepth)
 
   # Create SNV input object for MutationTimeR
   return(VariantAnnotation::expand(VCF(rowRanges = rowRanges, info = DataFrame(counts))))
@@ -169,9 +169,9 @@ for (i in seq_along(samples)) {
   
   # Extract variant information
   V <- as.data.frame(mt$V) %>% 
-    select(!pAllSubclones) %>%
-    mutate(CNID = as.numeric(CNID)) %>%
-    mutate(CN = MajCN + MinCN)
+    dplyr::select(!pAllSubclones) %>%
+    dplyr::mutate(CNID = as.numeric(CNID)) %>%
+    dplyr::mutate(CN = MajCN + MinCN)
   
   # Extract CNV timing information
   T <- as.data.frame(mt$T[-c(1)])
