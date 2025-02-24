@@ -91,11 +91,11 @@ plot2 <- plot2 + theme(axis.text.y = element_blank())
 plot3 <- plot3 + theme(axis.text.y = element_blank())
 
 # Statistical testing
-wilcox.test(tmb ~ tumor_type, data = tumor_metadata)
-aggregate(x = tumor_metadata$tmb, by = list(tumor_metadata$tumor_type), FUN = median)
-
 wilcox.test(tmb ~ category, data = tumor_metadata)
 aggregate(x = tumor_metadata$tmb, by = list(tumor_metadata$category), FUN = median)
+
+wilcox.test(tmb ~ tumor_type, data = tumor_metadata)
+aggregate(x = tumor_metadata$tmb, by = list(tumor_metadata$tumor_type), FUN = median)
 
 wilcox.test(tmb ~ germline_cat, data = tumor_metadata)
 aggregate(x = tumor_metadata$tmb, by = list(tumor_metadata$germline_cat), FUN = median)
@@ -113,11 +113,11 @@ plot5 <- plot5 + theme(axis.text.y = element_blank())
 plot6 <- plot6 + theme(axis.text.y = element_blank())
 
 # Statistical testing
-wilcox.test(n_muts ~ tumor_type, data = tumor_metadata)
-aggregate(x = tumor_metadata$n_muts, by = list(tumor_metadata$tumor_type), FUN = median)
-
 wilcox.test(n_muts ~ category, data = tumor_metadata)
 aggregate(x = tumor_metadata$n_muts, by = list(tumor_metadata$category), FUN = median)
+
+wilcox.test(n_muts ~ tumor_type, data = tumor_metadata)
+aggregate(x = tumor_metadata$n_muts, by = list(tumor_metadata$tumor_type), FUN = median)
 
 wilcox.test(n_muts ~ germline_cat, data = tumor_metadata)
 aggregate(x = tumor_metadata$n_muts, by = list(tumor_metadata$germline_cat), FUN = median)
