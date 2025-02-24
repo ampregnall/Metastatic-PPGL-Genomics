@@ -184,13 +184,17 @@ jsi <- jsi %>% rowwise() %>%
 
 jsi.fil <- jsi %>% filter(type == "primary_metastasis")
 
-ggplot(jsi.fil, aes(x = type, y=JSI)) + 
+plt <- ggplot(jsi.fil, aes(x = type, y=JSI)) + 
   geom_beeswarm(size = 3, cex = 3, color = "#2E86AB") +
-  xlab("") + ylim(0, 0.6) + theme_minimal() + 
+  geom_hline(yintercept = 0.3, linetype = "dashed", color = "black") +
+  xlab("") + ylim(0, 0.35) + theme_minimal() + 
   theme(axis.text.y = element_text(size = 8), 
         axis.title = element_blank(), 
         axis.text.x = element_blank())
 
+pdf("results/figures/mutational_timing/jaccard_similarity_index.pdf", width = 5, height = 5)
+print(plt)
+dev.off()
 
 ### Save results
 readr::write_delim(jsi, "data/processed/mutation_timing/jaccard_similarity/mPPGL_jsi_estimates.txt", delim = "\t")
