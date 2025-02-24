@@ -32,3 +32,6 @@
 *.bed
 *.json
 .ipynb_checkpoints
+*.seg
+*.zip
+*.xml
