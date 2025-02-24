@@ -12,43 +12,6 @@
 library(tidyverse)
 library(optparse)
 
-# PARSE COMMAND LINE OPTIONS
-option_list <- list(
-  make_option(c("-i", "--input"),
-              type = "character",
-              default = NULL,
-              help = "Path to data frame",
-              metavar = "character"
-  ),
-  make_option(c("-c", "--cytobands"),
-              type = "character",
-              default = "out.txt",
-              help = "output file name [default = %default]",
-              metavar = "character"
-  ),
-  make_option(c("-p", "--ploidy"),
-              type = "character",
-              default = "out.txt",
-              help = "output file name [default = %default]",
-              metavar = "character"
-  ),
-  make_option(c("-o", "--output"),
-              type = "character",
-              default = "out.txt",
-              help = "output file name [default = %default]",
-              metavar = "character"
-  ),
-  make_option(c("-s", "--summary"),
-              type = "character",
-              default = "out.txt",
-              help = "output file name [default = %default]",
-              metavar = "character"
-  )
-)
-
-opt_parser <- OptionParser(option_list = option_list)
-opt <- parse_args(opt_parser)
-
 df <- readr::read_delim(opt$input, delim = "\t")
 cytos <- readr::read_delim(opt$cytobands)
 ploidy <- readxl::read_xlsx(opt$ploidy, sheet = "tumors")
