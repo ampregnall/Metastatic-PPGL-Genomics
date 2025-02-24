@@ -1,10 +1,21 @@
+## ---------------------------
+## Script Name: NAME
+## Description: PURPOSE
+##
+## Author: Andrew M. Pregnall
+## Email: andrew.pregnall@pennmedicine.upenn.edu
+## 
+## Date Created: 2025-01-26
+## ---------------------------
+
+# Load packages
 library(tidyverse)
 library(ggpubr)
 library(ggbeeswarm)
 
 
 df <- readxl::read_xlsx("results/ibd_scores/PPGL-IBD.xlsx", sheet = "paired")
-df$cat <- "cat" # Dummy variable for plotting
+df$cat <- "Tumor Pairs" # Dummy variable for plotting
 tumor_metadata <- readxl::read_xlsx("metadata/mPPGL-Metadata.xlsx", sheet = "tumors")
 
 df2 <- readr::read_delim("data/processed/snvs/drivers/PPGL.somatic.data.combined.filtered.txt")
@@ -35,30 +46,28 @@ df3$shared_vars <- shared_vars
 df3$total_vars <- total_vars
 df3$tumor_1_vars <- tumor_1_vars
 df3$percent <- df3$shared_vars / df3$tumor_1_vars * 100
-df3$cat <- "cat"
+df3$cat <- "Tumor Pairs"
 
 median(df3$percent)
 summary(df3$percent)
 
-plot <- ggplot(df3, aes(x = cat, y=percent)) + 
-  geom_beeswarm(size = 3, cex = 3, color = "#7260a6") + xlab("") + 
-  geom_beeswarm(data = df, aes(x = cat, y = PI_HAT * 100), cex = 2, size = 3, color = "#6a9e3b") + 
+plt <- ggplot(df3, aes(x = cat, y=percent)) + 
+  geom_beeswarm(size = 3, cex = 3, color = "#7260a6") + 
+  geom_beeswarm(data = df, aes(x = cat, y = PI_HAT * 100), cex = 2, size = 3, color = "#6a9e3b") +
+  labs(title="Relatedness", y = "") +
   theme_minimal() + theme(strip.background = element_blank(),
-                               strip.text = element_blank(),
-                               panel.border = element_blank(),
-                               #panel.background = element_blank(),
-                               plot.title = element_text(size = 16, hjust = 0.5),
-                               axis.text.x = element_blank(),
-                               axis.text.y = element_blank(),
-                               axis.title.x = element_blank(),
+                          strip.text = element_blank(),
+                          panel.border = element_blank(),
+                               plot.title = element_text(size = 8, hjust = 0.5),
+                               axis.title.x = element_text(size = 6, color = "black"),
+                               axis.text.y = element_text(size = 6, color = "black"),
                                axis.title.y = element_blank(),
                                legend.text = element_text(size = 16),
-                               text = element_text(size = 16),
                                panel.grid.major.x = element_blank(),
                                panel.grid.minor.x = element_blank(), 
                                legend.position = "none",
                                plot.margin = unit(c(0, 0, 0, 0), "cm"))
 
-pdf("results/figures/clonality_analysis/relatedness.pdf", width = 5, height = 5)
-print(plot)
+pdf("results/figures/clonality_analysis/relatedness.pdf", width = 1.5, height = 1.5)
+print(plt)
 dev.off()
