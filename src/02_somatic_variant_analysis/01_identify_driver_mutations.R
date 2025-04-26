@@ -1,6 +1,6 @@
 ## ---------------------------
 ## Script Name: 01_identify_driver_mutations.R
-## Description: Filter WES from mPPGL cohort to identify driver mutations
+## Description: Filter WES from mPPGL cohort to identify pathogenic variants
 ##
 ## Author: Andrew M. Pregnall
 ## Email: andrew.pregnall@pennmedicine.upenn.edu
@@ -17,6 +17,7 @@ library(tidyverse)
 # Define variables
 read_depth <- 8
 allele_freq <- 0.01
+revel_score <- 0.7
 clin_var_filter <- c("Likely_pathogenic", "Pathogenic", "Pathogenic/Likely_pathogenic")
 
 # Load Data ---------------------------------------------------------------
@@ -101,9 +102,11 @@ n_genes <- length(unique(snv.data$Gene))
 # Save combined data
 write_delim(snv.data, "data/processed/snvs/drivers/PPGL.somatic.data.combined.txt", delim = "\t")
 
-# Filter by Allele Depth --------------------------------------------------
+# Filter by Allele Depth -----------------------------------------
 
-snv.data <- snv.data %>% filter(Tumor.AltDepth >= read_depth)
+# Filter by read depth 
+snv.data <- snv.data %>% filter(Tumor.AltDepth >= read_depth) 
+
 n_mutations_rd <- nrow(snv.data)
 n_genes_rd <- length(unique(snv.data$Gene))
 
@@ -117,13 +120,20 @@ n_genes_clinvar <- length(unique(snv.data$Gene))
 
 # Apply filtering criteria to identify LOF/GOF mutations ------------------- 
 
+# Create flag for last exon
+snv.data <- snv.data %>%
+  mutate(last_exon = str_split(EXON, "\\|") %>% map_lgl(~ .x[1] == .x[2])) %>%
+  mutate(last_exon = case_when(is.na(last_exon) ~ FALSE, TRUE ~ last_exon)) # For intronic variants
+
+# Determine mutation consequence
 snv.data <- snv.data %>% 
   filter(gnomAD.MAX_AF == "." | as.numeric(gnomAD.MAX_AF) < allele_freq) %>%
   mutate(mutation.consequence = 
-           case_when(str_detect(Variant.Consequence, "frameshift_variant|stop_gained") ~ "LOF",
+           case_when(str_detect(Variant.Consequence, "frameshift_variant|stop_gained") &
+                       last_exon == FALSE ~ "LOF",
                      Variant.Consequence %in% c("splice_acceptor_variant", "splice_donor_variant") ~ "LOF",
                      str_detect(Variant.Consequence, "missense_variant") & 
-                       REVEL != "." & as.numeric(REVEL) > 0.5 ~ "LOF",
+                       REVEL != "." & as.numeric(REVEL) > revel_score ~ "LOF",
                      str_detect(Variant.Consequence, "missense_variant") & 
                        (ClinVar.SIG %in% clin_var_filter | grepl("COSV", Existing.variation)) ~ "GOF",
                      TRUE ~ "Unknown"))
@@ -142,13 +152,18 @@ write_delim(gof.data, "data/processed/snvs/drivers/PPGL.somatic.data.combined.fi
          
 # Filter by COSMIC --------------------------------------------------------
 
+# Load cancer census genes
 cgc <- read_delim("metadata/cancer_census_genes_all_v98.tsv", delim = "\t")
 
+# Filter by CGC
 lof.data <- lof.data %>% filter(Gene %in% cgc$`Gene Symbol`)
-gof.data <- gof.data %>% filter(Gene %in% cgc$`Gene Symbol`) 
-
 n_mutations_lof_cgc <- nrow(lof.data)
 n_genes_lof_cgc <- length(unique(lof.data$Gene))
+
+# Limit filter for gain of function genes to missense mutations
+cgc <- cgc %>% filter(grepl("Mis", `Mutation Types`))
+
+gof.data <- gof.data %>% filter(Gene %in% cgc$`Gene Symbol`) 
 n_mutations_gof_cgc <- nrow(gof.data)
 n_genes_gof_cgc <- length(unique(gof.data$Gene))
 
