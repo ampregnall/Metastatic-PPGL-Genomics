@@ -56,27 +56,6 @@ driver_count <- drivers %>%
 tumor_metadata <- left_join(tumor_metadata, driver_count, by = c("sample" = "Tumor.ID"))
 tumor_metadata[is.na(tumor_metadata)] <- 0
 
-# Prepare mutational signature data ---------------------------------------
-
-# Load SBS signatures
-sigs <- read_delim("data/processed/mutational_signatures/SigProfilerExtractor_SBS/SBS96/Suggested_Solution/COSMIC_SBS96_Decomposed_Solution/Activities/COSMIC_SBS96_Activities.txt", delim = "\t")
-sigs <- as.data.frame(sigs)
-rownames(sigs) <- sigs[, 1]
-sigs <- sigs[, -1]
-sigs <- sigs[match(samples$sample, rownames(sigs)), ]
-sigs <- t(apply(sigs, 1, function(x) x / sum(x))) # Normalize to percent
-
-# Load indel signatures
-ids <- readr::read_delim("data/processed/mutational_signatures/SigProfilerExtractor_ID/ID83/Suggested_Solution/COSMIC_ID83_Decomposed_Solution/Activities/COSMIC_ID83_Activities.txt", delim = "\t")
-ids <- left_join(samples, ids, by = c("sample" = "Samples"))
-ids <- as.data.frame(ids)
-rownames(ids) <- ids[, 1]
-ids <- ids[, -1]
-ids <- ids[match(samples$sample, rownames(ids)), ]
-ids <- t(apply(ids, 1, function(x) x / sum(x))) # Normalize to percent
-ids[is.na(ids)] <- 0
-
-
 # Create Matrix of LOF/GOF Mutations ------------------------------------------
 
 # Create variant classification for Oncoplot
@@ -157,32 +136,7 @@ plot1 <- oncoPrint(mut_matrix,
     Tumor = anno_simple(x = tumor_metadata$tumor_type, col = tumor),
     Type = anno_simple(x = tumor_metadata$category, col = category),
     show_legend = FALSE
-  ),
-  bottom_annotation = HeatmapAnnotation(
-    SBS = anno_barplot(sigs,
-      gp = gpar(fill = c(
-        "#948958",
-        "#798259",
-        "#febf70",
-        "#a17721",
-        "#9f6a4d",
-        "#a95035",
-        "#96211e"
-      )),
-      height = unit(1, "in"), border = FALSE, axis_param = list(gp = gpar(fontsize = 12))
-    ),
-    Indels = anno_barplot(ids,
-      gp = gpar(fill = c(
-        "#5a8f9b",
-        "#d0d7da",
-        "#4c6a74",
-        "#f2e6d7"
-      )),
-      height = unit(1, "in"), border = FALSE, axis_param = list(gp = gpar(fontsize = 12))
-    ),
-    gap = unit(4, "mm")
-  )
-)
+  ))
 
 
 ### Save results
