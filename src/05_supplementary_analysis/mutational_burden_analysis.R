@@ -1,12 +1,11 @@
 ## ---------------------------
-## Script Name: NAME
-## Description: PURPOSE
+## Script Name: mutational_burden_analysis.R
+## Description: Compares TMB and number of loss/gain of function variants in cohort
 ##
 ## Author: Andrew M. Pregnall
 ## Email: andrew.pregnall@pennmedicine.upenn.edu
 ## 
 ## Date Created: 2025-01-23
-## Copyright (c) Andrew Pregnall, 2025
 ## ---------------------------
 
 # Load packages
@@ -18,7 +17,7 @@ library(cowplot)
 panel_size <- 35.7
 read_depth <- 8
 allele_freq <- 0.01
-sdh <- c("SDHB", "SDHA", "SDHC")
+sdh <- c("SDHB")
 
 # Load sample information
 tumor_metadata <- readxl::read_xlsx("metadata/mPPGL-Metadata.xlsx", sheet = "tumors")
@@ -57,7 +56,7 @@ tumor_metadata <- left_join(tumor_metadata, drivers_summary, by = c("sample" = "
 tumor_metadata[is.na(tumor_metadata)] = 0
 
 ### Create SDH category
-tumor_metadata <- mutate(tumor_metadata, germline_cat = case_when(germline %in% sdh ~ "SDHx", TRUE ~ "Non-SDHx"))
+tumor_metadata <- mutate(tumor_metadata, germline_cat = case_when(germline %in% sdh ~ "SDHB", TRUE ~ "Non-SDHB"))
 
 # Purity Plots ------------------------------------------------------------
 
@@ -71,10 +70,10 @@ create_plot <- function(data, x_var, y_var, fill_var, y_label, x_label) {
           strip.background = element_blank(),
           strip.text = element_blank(),
           panel.border = element_blank(),
-          axis.text.x = element_text(size = 6, color = "black"),
-          axis.text.y = element_text(size = 6, color = "black"),
-          axis.title.x = element_text(size = 6),
-          axis.title.y = element_text(size = 6),
+          axis.text.x = element_text(size = 8, color = "black"),
+          axis.text.y = element_text(size = 8, color = "black"),
+          axis.title.x = element_text(size = 8),
+          axis.title.y = element_text(size = 8),
           axis.line.y = element_line())
 }
 
