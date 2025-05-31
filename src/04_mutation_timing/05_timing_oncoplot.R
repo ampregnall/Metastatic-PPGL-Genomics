@@ -1,12 +1,11 @@
 ## ---------------------------
-## Script Name: NAME
-## Description: PURPOSE
+## Script Name: timing_oncoplot.R
+## Description: Create oncoplot of MutationTimeR CNV time estimates
 ##
 ## Author: Andrew M. Pregnall
 ## Email: andrew.pregnall@pennmedicine.upenn.edu
 ## 
 ## Date Created: 2025-01-21
-## Copyright (c) Andrew Pregnall, 2025
 ## ---------------------------
 
 # Load packages

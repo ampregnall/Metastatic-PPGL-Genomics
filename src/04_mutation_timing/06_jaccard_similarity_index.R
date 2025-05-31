@@ -1,12 +1,11 @@
 ## ---------------------------
-## Script Name: NAME
-## Description: PURPOSE
+## Script Name: jaccard_similarity_index.R
+## Description: Calculate JSI based on Hu et al (Nat Gen 2020)
 ##
 ## Author: Andrew M. Pregnall
 ## Email: andrew.pregnall@pennmedicine.upenn.edu
 ## 
 ## Date Created: 2025-01-14
-## Copyright (c) Andrew Pregnall, 2025
 ## ---------------------------t
 
 # Load packages
