@@ -1,7 +1,6 @@
 ## ---------------------------
-## Script Name: calculate_arm_level_changes.R
-## Description: Calculate the percentage of an arm affected by gain, amplification,
-## deletion, loss, or neutral copy number event
+## Script Name: 02_calculate_arm_level_changes.R
+## Description: Calculate the percentage of an arm affected by gain, del, or LOH CNV event
 ##
 ## Author: Andrew M. Pregnall
 ## Email: andrew.pregnall@pennmedicine.upenn.edu
@@ -27,10 +26,10 @@ df <- df %>% dplyr:::mutate(Segment.Type = factor(Segment.Type, levels = c("del"
   dplyr::mutate(Segment.Length = as.numeric(stringr::str_remove(Segment.Length, "bp"))) %>%
   dplyr::left_join(cytos, by = c("SV.Chrom" = "chrom")) 
 
-
+# Handle Sequenza annotations that are split across chromosomal arms
 df <- df %>%
   # Create rows for both conditions at once with case_when
-  dplyr::filter(SV.Start >= p_start & SV.Start <= p_end & SV.End > q_start & SV.End <= q_end) %>%
+  dplyr::filter(SV.Start >= p_start & SV.Start <= p_end & SV.End > q_start & SV.End <= q_end) %>% # Select events that span arms and split across arm
   dplyr::mutate(
     SV.Start = case_when(
       SV.End > q_start & SV.End <= q_end ~ q_start,
@@ -48,7 +47,7 @@ df <- df %>%
       filter((SV.Start >= p_start & SV.End <= p_end) | (SV.Start >= q_start & SV.End <= q_end))
   )
 
-
+# Annotate with chromosomal arm
 df <- df %>% dplyr::mutate(arm = case_when(SV.Start >= p_start & SV.End <= p_end ~ str_c(SV.Chrom, "p"),
                                 SV.Start >= q_start & SV.End <= q_end ~ str_c(SV.Chrom, "q")),
                        arm_length = case_when(SV.Start >= p_start & SV.End <= p_end ~ p_length,
@@ -56,6 +55,7 @@ df <- df %>% dplyr::mutate(arm = case_when(SV.Start >= p_start & SV.End <= p_end
   dplyr::mutate(arm = factor(arm, levels = arms)) %>% 
   dplyr::left_join(ploidy, by = c("TumorID"="sample"))
 
+# Calculate proportion of arm affected by amp/del/loh event
 df <- df %>% dplyr::mutate(Percent.Change = case_when(
     Segment.Type %in% c("amp", "gain") & Segment.CN <= ploidyRounded ~ 0,
     Segment.Type == "neutral" & Segment.Zyg != "loh" ~ 0,
