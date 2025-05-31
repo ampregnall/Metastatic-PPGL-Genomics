@@ -1,5 +1,5 @@
 ## ---------------------------
-## Script Name: 04_snv_oncoplot.R
+## Script Name: 02_snv_oncoplot.R
 ## Description: Generate Oncoplot of mPPGL driver mutations
 ##
 ## Author: Andrew M. Pregnall
@@ -76,7 +76,7 @@ mut_matrix <- drivers %>%
 # Some samples have no driver mutations; add back into matrix
 mut_matrix <- left_join(samples, mut_matrix, by = c("sample" = "Tumor.ID"))
 
-# Limit matrix to genes mutated in at least 6 samples
+# Limit matrix to genes mutated in at least 6 samples (arbitrarily selected to make figure suitable for publication)
 mut_matrix <- mut_matrix[colSums(is.na(mut_matrix)) <= 42]
 
 # Transform into Oncoplot input
