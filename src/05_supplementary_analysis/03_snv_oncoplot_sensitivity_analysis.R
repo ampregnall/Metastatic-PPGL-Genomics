@@ -77,7 +77,7 @@ mut_matrix <- drivers %>%
 mut_matrix <- left_join(samples, mut_matrix, by = c("sample" = "Tumor.ID"))
 
 ### Limit matrix to genes mutated in at least 6 samples
-mut_matrix <- mut_matrix[colSums(is.na(mut_matrix)) <= 42]
+mut_matrix <- mut_matrix[colSums(is.na(mut_matrix)) <= 44]
 
 ### Transform into Oncoplot input
 mut_matrix <- as.data.frame(mut_matrix)

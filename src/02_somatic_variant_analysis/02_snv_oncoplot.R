@@ -140,6 +140,6 @@ plot1 <- oncoPrint(mut_matrix,
 
 
 ### Save results
-pdf("results/figures/driver_analysis/snv_oncoplot.pdf", width = 15, height = 12)
+pdf("results/figures/driver_analysis/snv_oncoplot.pdf", width = 7.5, height = 5)
 print(plot1)
 dev.off()
