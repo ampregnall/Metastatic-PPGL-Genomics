@@ -6,7 +6,6 @@
 ## Email: andrew.pregnall@pennmedicine.upenn.edu
 ## 
 ## Date Created: 2025-01-24
-## Copyright (c) Andrew Pregnall, 2025
 ## ---------------------------
 
 # Load packages
