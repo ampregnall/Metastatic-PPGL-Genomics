@@ -3,7 +3,6 @@ library(ggpubr)
 library(cowplot)
 
 ### Load data
-df <- readxl::read_xlsx("metadata/Sequenza-Ploidy-Estimates.xlsx")
 meta <- readxl::read_xlsx("metadata/mPPGL-Metadata.xlsx", sheet = "tumors")
 cnvs <- readr::read_delim("data/processed/cnvs/annotSV/mPPGL.annotSV.data.combined.txt")
 
@@ -12,12 +11,11 @@ cnv_count <- cnvs %>% dplyr::distinct(TumorID, AnnotSV.ID) %>%
   dplyr::group_by(TumorID) %>% dplyr::summarise(count = n())
 
 ### Add purity, ploidy, and cnv count to data
-meta <- dplyr::left_join(meta, df, by = "sample")
 meta <- dplyr::left_join(meta, cnv_count, by = c("sample"="TumorID"))
   
 ### Create SDH category
-sdh <- c("SDHB", "SDHA", "SDHC")
-meta <- dplyr::mutate(meta, germline_cat = case_when(germline %in% sdh ~ "SDHx", TRUE ~ "Non-SDHx"))
+sdh <- c("SDHB")
+meta <- dplyr::mutate(meta, germline_cat = case_when(germline %in% sdh ~ "SDHB", TRUE ~ "Non-SDHB"))
 
 # Purity Plots ------------------------------------------------------------
 
@@ -84,7 +82,7 @@ plot9 <- create_plot(meta, "germline_cat", "count", "germline_cat", "", "")
 
 figure <- cowplot::plot_grid(plot1, plot2, plot3,
                              plot4, plot5, plot6, 
-                             plot7, plot8, plot8,
+                             plot7, plot8, plot9,
                              ncol = 3, nrow = 3, align = "hv")
 
 ### Save results
