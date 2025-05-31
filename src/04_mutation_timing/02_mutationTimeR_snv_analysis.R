@@ -15,13 +15,38 @@ library(tidyverse)
 col <- c("#4DAF4A", "#984EA3", "#377EB8", "#E41A1C", "#999999")
 read_depth <- 8
 allele_freq <- 0.01
+revel_score <- 0.7
 clin_var_filter <- c("Likely_pathogenic", "Pathogenic", "Pathogenic/Likely_pathogenic")
-drivers <- c(
-  "KMT2A", "KMT2D", "TRIP11", "AKAP9", "ZFHX3", "ATR", "TPR", "ATM", "GRIN2A", "POLR2A", "BRCA1",
-  "MUC16", "ASXL1", "SETD2", "TET2", "KMT2C", "ATRX", "CHD2", "LRP1B", "POLQ", "UBR5", "CSMD3", "MTOR",
-  "STAG1", "CREBBP", "ROS1", "SPEN", "FAT3", "BRCA2", "MYH9", "NSD1", "ASPM", "MUC4", "KAT6B", "FAT1",
+
+drivers_list <- c(
+  "MUC16",
+  "KMT2D",
+  "SPEN",
+  "CREBBP",
+  "POLR2A",
+  "ATRX",
+  "LRP1B",
+  "FAT1",
+  "TRIP11",
+  "KMT2C",
+  "ASPM",
+  "MUC4",
+  "AKAP9",
+  "ZFHX3",
+  "ATR",
+  "TPR",
+  "ATM",
+  "SETD2",
+  "TET2",
+  "POLQ",
+  "UBR5",
+  "CSMD3",
+  "STAG1",
+  "FAT3",
+  "BRCA2",
   "CIC"
 )
+
 
 # Define variables
 clonal <- c("clonal [late]", "clonal [NA]", "clonal [early]")
@@ -212,32 +237,31 @@ dev.off()
 
 # Driver Mutations --------------------------------------------------------
 
-# Load CGC mutations
 cgc <- read_delim("metadata/cancer_census_genes_all_v98.tsv", delim = "\t")
+cgc.gof <- cgc %>% filter(grepl("Mis", `Mutation Types`))
 
-# Get driver mutations
+# Create flag for last exon
 df.drivers <- df %>%
   filter(Tumor.AltDepth >= read_depth) %>%
   filter(!str_detect(tolower(ClinVar.SIG), "benign")) %>%
+  mutate(last_exon = str_split(EXON, "\\|") %>% map_lgl(~ .x[1] == .x[2])) %>%
+  mutate(last_exon = case_when(is.na(last_exon) ~ FALSE, TRUE ~ last_exon)) %>% 
   filter(gnomAD.MAX_AF == "." | as.numeric(gnomAD.MAX_AF) < allele_freq) %>%
-  mutate(
-    mutation.consequence =
-      case_when(
-        str_detect(Variant.Consequence, "frameshift_variant|stop_gained") ~ "LOF",
-        Variant.Consequence %in% c("splice_acceptor_variant", "splice_donor_variant") ~ "LOF",
-        str_detect(Variant.Consequence, "missense_variant") &
-          REVEL != "." & as.numeric(REVEL) > 0.5 ~ "LOF",
-        str_detect(Variant.Consequence, "missense_variant") &
-          (ClinVar.SIG %in% clin_var_filter | grepl("COSV", Existing.variation)) ~ "GOF",
-        TRUE ~ "Unknown"
-      )
-  ) %>%
-  filter(mutation.consequence != "Unknown") %>%
-  filter(Gene %in% cgc$`Gene Symbol`)
-
+  mutate(mutation.consequence = 
+           case_when(str_detect(Variant.Consequence, "frameshift_variant|stop_gained") &
+                       last_exon == FALSE ~ "LOF",
+                     Variant.Consequence %in% c("splice_acceptor_variant", "splice_donor_variant") ~ "LOF",
+                     str_detect(Variant.Consequence, "missense_variant") & 
+                       REVEL != "." & as.numeric(REVEL) > revel_score ~ "LOF",
+                     str_detect(Variant.Consequence, "missense_variant") & 
+                       (ClinVar.SIG %in% clin_var_filter | grepl("COSV", Existing.variation)) ~ "GOF",
+                     TRUE ~ "Unknown")) %>%
+  filter(mutation.consequence == "LOF" & Gene %in% cgc$`Gene Symbol` | 
+           mutation.consequence == "GOF" & Gene %in% cgc.gof$`Gene Symbol`)
+  
 #
 df.drivers.prop <- df.drivers %>%
-  filter(Gene %in% drivers) %>%
+  filter(Gene %in% drivers_list) %>%
   group_by(Gene) %>%
   dplyr::count(CLS) %>%
   group_by(Gene) %>%
@@ -418,7 +442,7 @@ plt5 <- ggplot(props, aes(x = group, y = proportion, fill = type_grouped)) +
     title = "",
     x = "", y = "", fill = "Type"
   ) +
-  scale_fill_grey() +
+  scale_fill_manual(values = c("#2c596d", "#a9d9e5")) +
   theme_minimal() +
   theme(
     plot.title = element_text(size = 16, hjust = 0.5),
