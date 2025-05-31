@@ -44,7 +44,7 @@ mut_matrix <- mut_matrix %>%
 
 mut_matrix <- left_join(tumor_metadata, mut_matrix, by = c("sample" = "sample"))
 mut_matrix <- mut_matrix %>% 
-  mutate(germline_cat = case_when(germline %in% c("SDHA", "SDHB", "SDHC") ~ "SDHx", TRUE ~ "Non-SDHx"))
+  mutate(germline_cat = case_when(germline %in% c("SDHB") ~ "SDHB", TRUE ~ "Non-SDHB"))
 
 table(mut_matrix$germline_cat, mut_matrix$mutation)
 fisher.test(table(mut_matrix$germline_cat, mut_matrix$mutation))
